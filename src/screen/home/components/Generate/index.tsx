@@ -1,12 +1,20 @@
 import { Button, Divider, Form, Input } from '@arco-design/web-react';
 import { open } from '@tauri-apps/api/dialog';
 import { downloadDir } from '@tauri-apps/api/path';
-import { FunctionComponent, ReactElement, useCallback, useEffect } from 'react';
+import { FunctionComponent, ReactElement, useCallback, useEffect, useState } from 'react';
 import { Parser } from '../../../../utils/Parser';
 
 const parser = new Parser();
 const cacheData = localStorage.getItem('cache');
+interface FormInfo {
+    outputDir: string;
+    jsonUrl: string;
+}
 export const Generate: FunctionComponent = (): ReactElement => {
+    const [initialStates, setinitialStates] = useState<FormInfo>({
+        outputDir: cacheData ? JSON.parse(cacheData)?.outputDir : '',
+        jsonUrl: cacheData ? JSON.parse(cacheData)?.jsonUrl : '',
+    });
     const [form] = Form.useForm();
 
     const onSaveOutputDir = useCallback(async () => {
@@ -35,17 +43,15 @@ export const Generate: FunctionComponent = (): ReactElement => {
             <Form
                 form={form}
                 onValuesChange={(_, values) => {
-                    console.log('onValuesChange: ', values);
+                    // console.log('onValuesChange: ', values);
                     localStorage.setItem('cache', JSON.stringify(values));
+                    setinitialStates(values as FormInfo);
                 }}
                 onSubmit={() => {
-                    console.log('onSubmit', form.getFields());
+                    // console.log('onSubmit', form.getFields());
                     parser.start(form.getFieldValue('jsonUrl'));
                 }}
-                initialValues={{
-                    outputDir: cacheData ? JSON.parse(cacheData)?.outputDir : '',
-                    jsonUrl: cacheData ? JSON.parse(cacheData)?.jsonUrl : '',
-                }}
+                initialValues={initialStates}
                 scrollToFirstError
             >
                 <Form.Item
@@ -54,7 +60,7 @@ export const Generate: FunctionComponent = (): ReactElement => {
                     field="outputDir"
                     className="flex items-center"
                 >
-                    <Input style={{ width: 420 }} value={form.getFieldValue('outputDir')} className=" mr-2 " />
+                    <Input style={{ width: 420 }} value={initialStates.outputDir} className=" mr-2 " />
                     <Button onClick={onSaveOutputDir}>浏览</Button>
                 </Form.Item>
 
@@ -63,6 +69,7 @@ export const Generate: FunctionComponent = (): ReactElement => {
                         style={{ width: 420 }}
                         className=" mr-2 "
                         onChange={(value) => form.setFieldValue('jsonUrl', value)}
+                        value={initialStates.jsonUrl}
                     />
                 </Form.Item>
 
