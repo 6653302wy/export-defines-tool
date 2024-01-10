@@ -15,5 +15,5 @@
     "outDir": "./"
   },
   "exclude": ["node_modules", "dist"],
-  "include": ["src", "src/screen/app-layout/index/.tsx"]
+  "include": ["src"]
 }
