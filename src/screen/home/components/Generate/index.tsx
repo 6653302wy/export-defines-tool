@@ -59,7 +59,12 @@ export const Generate: FunctionComponent = (): ReactElement => {
             </div>
             <div>
                 <span className=" mr-2 w-20 inline-block">JSON URL:</span>
-                <Input style={{ width: 420 }} className=" mr-2 " onChange={(value) => onSaveJsonUrl(value)} />
+                <Input
+                    style={{ width: 420 }}
+                    className=" mr-2 "
+                    defaultValue={jsonUrl}
+                    onChange={(value) => onSaveJsonUrl(value)}
+                />
             </div>
 
             <Button type="primary" size="large" onClick={() => parser.start(jsonUrl)} className="mt-4">

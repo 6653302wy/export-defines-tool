@@ -136,7 +136,7 @@ export class Parser {
         // 读取 requestBody 对象
         const bodyObjects = requestBody?.properties;
         if (bodyObjects?.length) {
-            defines += this.parseObjectStruct(requestBody);
+            // defines += this.parseObjectStruct(bodyObjects);
         }
 
         return `
