@@ -1,15 +1,24 @@
 /* eslint-disable max-lines-per-function */
+import { Message } from '@arco-design/web-react';
 import axios from 'axios';
+import { FilerUtils } from './fileUtls';
 
 interface PropertyInfo {
     type: string;
     description?: string;
     example?: string;
-    /** type 为 object 时 */
-    properties?: { [key: string]: PropertyInfo };
+    items?: { [key: string]: PropertyInfo };
+}
+
+type ParamInfo = { [key: string]: PropertyInfo };
+
+interface SchemaInfo {
+    type: string;
+    properties: ParamInfo;
+    // 必填参数列表
+    required?: string[];
     /** type 为 array 时 */
     items?: { [key: string]: PropertyInfo };
-    required?: string[];
 }
 
 interface ParameterInfo {
@@ -19,14 +28,6 @@ interface ParameterInfo {
     required: boolean;
     /** 在请求的 parameters 中，schema里的数据均为基础类型数据  */
     schema: PropertyInfo;
-}
-
-type ParamInfo = { [key: string]: PropertyInfo };
-interface SchemaInfo {
-    type: string;
-    properties: ParamInfo;
-    // 必填参数列表
-    required: string[];
 }
 
 interface PathInfo {
@@ -52,28 +53,21 @@ interface JsonDataInfo {
 // 基础数据类型
 const basicDataTypes = ['string', 'number', 'integer', 'boolean', 'file'];
 export class Parser {
-    private readonly apiFilePath = `/Apis.ts`;
-    private readonly interfaceFilePath = `/Interface.ts`;
-
     private apiJsonFile: JsonDataInfo | undefined = undefined;
-    private requestDefineMap = new Map();
-    private requestDefines = '';
-    // Interface 文件
+    private apiDefines = '';
     private interfaceDefines = '';
-    private allDefineMap = new Map(); // 做去重用
+    private responseSubDefineMap: Map<string, string[]> = new Map();
     private apiImports = '';
 
     private apiList: string[] = [];
 
-    // 返回数据data的key  不设置则默认最外层
-    private responseDataKey = '';
+    // 文件保存路径
+    private savePath = '';
 
-    // static get inst() {
-    //     return Singleton.get(Parser);
-    // }
+    start(savePath: string, url?: string, jsonData?: JsonDataInfo) {
+        this.savePath = savePath;
 
-    start(url?: string, jsonData?: JsonDataInfo, responseDataKey?: string) {
-        this.responseDataKey = responseDataKey || '';
+        this.resetDefines();
 
         if (url) {
             this.getJsonData(url);
@@ -88,7 +82,7 @@ export class Parser {
 
     private createModuleCodes() {
         if (!this.apiJsonFile) return;
-        console.log('createModuleCodes: ', this.apiJsonFile);
+        // console.log('createModuleCodes: ', this.apiJsonFile);
 
         // 解析出api列表
         this.apiList = Array.from(Object.keys(this.apiJsonFile.paths));
@@ -98,19 +92,56 @@ export class Parser {
                 const reqMethod = Array.from(Object.keys(data))[0];
                 const apidata = data[reqMethod];
                 const apiname = this.createAPIName(api);
+                const requestApi = `${apiname}Request`;
+                const responseApi = `${apiname}Response`;
+
+                // 创建api
+                this.apiDefines += this.defineAPI(api, requestApi, responseApi, apidata, reqMethod);
+
+                // 创建请求数据结构体
                 this.interfaceDefines += this.parseRequestDefine(
-                    apiname,
+                    requestApi,
                     apidata?.parameters,
                     this.getValueByKey(apidata?.requestBody, 'schema') as SchemaInfo,
                 );
-                // console.log('解析request defines: ', api, this.interfaceDefines);
+
+                // 创建返回数据结构体
                 this.interfaceDefines += this.parseResoneDefine(
-                    apiname,
+                    responseApi,
                     this.getValueByKey(apidata?.responses, 'schema') as SchemaInfo,
                 );
-                // console.log('开始解析====, response defines: ', this.interfaceDefines);
+                // console.log('解析defines: ', this.interfaceDefines);
             }
         });
+
+        // 写入接口文件
+        this.touchAPIFile();
+        this.touchInterfaceFile();
+
+        Message.info('接口文件生成成功');
+    }
+
+    private defineAPI(
+        apiPath: string,
+        requestDefine: string,
+        responseDefine: string,
+        apidata: PathInfo,
+        reqMethod: string,
+    ) {
+        const apiname = this.createAPIName(apiPath);
+
+        let headerContentType = apidata?.requestBody ? Object.keys(apidata?.requestBody?.content)?.[0] : '';
+        headerContentType = reqMethod === 'post' && !apidata?.requestBody ? 'multipart/form-data' : headerContentType;
+        return `
+/**
+ * ${apidata?.description || apidata?.summary || ''}
+ * ${apidata?.deprecated ? '@deprecated 接口已弃用' : ''}
+ */
+export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDefine}): Promise<${responseDefine}> => {
+    return NetManager.inst.request('${
+        this.getApiPre(apidata?.tags?.[0] || '').pre
+    }${apiPath}', '${reqMethod}', data, '${headerContentType || 'application/json;charset=utf-8'}');
+}\n`;
     }
 
     // 解析请求数据结构体
@@ -135,58 +166,96 @@ export class Parser {
             defines += this.parseObjectStruct(requestBody, api);
         }
 
-        // console.log(`${api}Request`, defines);
+        const subDefines = this.responseSubDefineMap.get(api) || [];
 
-        return `
-        export interface ${api}Request {
+        this.apiImports += `
+import { ${api} } from './Interface';\n`;
+
+        return `export interface ${api} {
             ${defines}
-        }
-        `;
+}\n
+${subDefines.join('\n')}
+`;
     }
 
     // 解析返回数据结构体
-    private parseResoneDefine(api: string, response: PropertyInfo) {
-        console.log('parseResoneDefine: ', api, response);
-        const defines = '';
-        // const params =
-        //     this.responseDataKey !== ''
-        //         ? (response.properties as ParamInfo)[this.responseDataKey]
-        //         : response.properties;
-        // const defines = this.parseObjectStruct(params);
-        return `
-        export interface ${api}Respone {
+    private parseResoneDefine(api: string, response: SchemaInfo) {
+        const defines = this.parseObjectStruct(response, api);
+        const subDefines = this.responseSubDefineMap.get(api) || [];
+
+        // console.log('parseResoneDefine: ', api, defines, subDefines);
+
+        this.apiImports += `import { ${api} } from './Interface';`;
+
+        return `export interface ${api} {
             ${defines}
-        }
-        `;
+}\n
+${subDefines.join('\n')}
+`;
     }
 
-    private parseObjectStruct(param: SchemaInfo, api?: string) {
-        const { properties } = param;
-        const params = Object.keys(properties);
+    private parseObjectStruct(param: SchemaInfo, api: string) {
+        const createSubDefine = (name: string, subparams: SchemaInfo) => {
+            return `export interface ${name} {
+                ${this.parseObjectStruct(subparams, api)}
+}
+`;
+        };
+
+        const { properties, items, required, type } = param;
+        let params: string[] = [];
+        let propertyObj = properties;
+        if (type === 'object') {
+            params = Object.keys(properties ?? {});
+        } else if (type === 'array') {
+            params = Object.keys(items?.properties || {});
+            propertyObj = (items?.properties || ({} as ParamInfo)) as ParamInfo;
+        }
+
         if (!params.length) return '';
+
+        const subDefines = api ? this.responseSubDefineMap.get(api) || [] : [];
+
+        if (api === 'VideoDraftSaveRequest') {
+            console.log(param, subDefines, params);
+        }
 
         let defines = '';
         params.forEach((key) => {
-            const obj = properties[key];
+            const obj = propertyObj[key];
+            const desc = `${obj?.description || ''} ${obj?.example ? 'expamle: ' : ''}${obj?.example || ''}`;
+            const require = required?.includes?.(key) || false;
+
             // 普通数据类型
             if (basicDataTypes.includes(obj.type)) {
-                defines += this.createParam(
-                    key,
-                    `${obj.description} ${obj.example ? 'expamle: ' : ''}${obj.example || ''}`,
-                    obj.type,
-                    param?.required?.includes(key) || false,
-                );
+                defines += this.createParam(key, desc, obj.type, require);
             } else {
                 // 复杂数据格式， object 和 array ， 需要继续往下一层解析
-                // if (obj.type === 'object') {
-                //     defines += this.parseObjectStruct(obj);
-                // }
-            }
-        });
+                const subParamName = `${api?.replace(/Request|Response|/g, '')}${this.firstUpperCase(key)}`;
 
-        if (api === 'CompanyUserLogin') {
-            console.log('parseObjectStruct', param, defines);
-        }
+                // 对象类型解析
+                if (obj.type === 'object') {
+                    defines += this.createParam(key, desc, subParamName, require);
+                    subDefines.push(createSubDefine(subParamName, obj as unknown as SchemaInfo));
+                }
+
+                // 数组类型解析
+                if (obj.type === 'array') {
+                    const isBasicType = basicDataTypes.includes(`${obj?.items?.type}` || '');
+                    defines += this.createParam(
+                        key,
+                        desc,
+                        isBasicType ? `${obj?.items?.type}[]` : `${subParamName}[]`,
+                        require,
+                    );
+
+                    if (!isBasicType) {
+                        subDefines.push(createSubDefine(subParamName, obj as unknown as SchemaInfo));
+                    }
+                }
+            }
+            if (api) this.responseSubDefineMap.set(api, subDefines);
+        });
 
         return defines;
     }
@@ -202,104 +271,35 @@ export class Parser {
                 break;
             default:
         }
-        return `/** ${desc || ''} */
-        ${key}${required ? '' : '?'}: ${datatype};\n`;
+        return `
+    /** ${desc || ''} */
+    ${key}${required ? '' : '?'}: ${datatype};\n`;
     }
 
-    // private parseDataDefine(apiname: string, requires: string[], params?: ParameterInfo[], body?: DataBodyInfo) {
-    //     const createProp = (name, type, desc, required, value) => {
-    //         let subProps = {}; // 嵌套的子属性结构体
-    //         let valType = type;
-    //         switch (type) {
-    //             case 'integer':
-    //                 valType = 'number';
-    //                 break;
-    //             case 'array':
-    //                 if (value?.items?.type === 'object') {
-    //                     const paramLen = Object.keys(value?.items?.properties)?.length;
-    //                     valType = paramLen ? `${api}${firstUpperCase(name)}[]` : 'any[]';
-    //                     if (paramLen) {
-    //                         subProps = parseDataDefine(api, value?.items?.required, value?.items.properties);
-    //                         subs.push({
-    //                             name: `${api}${firstUpperCase(name)}`,
-    //                             subProps,
-    //                             valType,
-    //                         });
-    //                         if (subProps?.subs?.length) {
-    //                             subProps.subs.forEach((val) => {
-    //                                 const subsubName =
-    //                                     val.name === `${api}${firstUpperCase(name)}` ? `${val.name}Children` : val.name;
-    //                                 const subProp = { name: subsubName, subProps: val.subProps };
-    //                                 subs.push(subProp);
-    //                             });
-    //                         }
-    //                     } else {
-    //                         valType = `${value?.items?.type === 'integer' ? 'number' : value?.items?.type}[]`;
-    //                         console.log('普通类型的参数===', value, valType);
-    //                     }
-    //                 } else {
-    //                     valType = `${value?.items?.type === 'integer' ? 'number' : value?.items?.type}[]`;
-    //                 }
-    //                 break;
-    //             case 'object':
-    //                 const props = value?.properties;
-    //                 if (props && Object.keys(props)?.length) {
-    //                     valType = `${api}${firstUpperCase(name)}`;
-    //                     subProps = parseDataDefine(api, value?.required ?? [], props);
-    //                     subs.push({ name: valType, subProps });
-    //                     if (subProps?.subs?.length) {
-    //                         subProps.subs.forEach((val) => {
-    //                             const subsubName =
-    //                                 val.name === `${api}${firstUpperCase(name)}` ? `${val.name}Children` : val.name;
-    //                             const subProp = { name: subsubName, subProps: val.subProps };
-    //                             subs.push(subProp);
-    //                         });
-    //                     }
-    //                 } else valType = 'any';
-    //                 break;
-    //             default:
-    //                 if (name === 'file') valType = 'File';
-    //                 else valType = type;
-    //         }
+    // 创建api文件
+    private async touchAPIFile() {
+        const final = `import { NetManager } from "@vgene/utils";
+    ${this.apiImports}
+    ${this.apiDefines}`;
+        await FilerUtils.saveTextFile(`${this.savePath}/Apis.ts`, final);
+    }
 
-    //         return {
-    //             main: `
-    //       /** ${desc ?? ''} */
-    //     ${name}${!required ? '?' : ''}: ${valType};\n`,
-    //         };
-    //     };
+    // 创建Interface文件
+    private async touchInterfaceFile() {
+        await FilerUtils.saveTextFile(`${this.savePath}/Interface.ts`, this.interfaceDefines);
+    }
 
-    //     let content = '';
-    //     let defines;
-    //     let subs = [];
-    //     if (body) {
-    //         for (const [key, value] of Object.entries(body)) {
-    //             defines = createProp(key, value.type, value?.description, requires?.includes(key), value);
-    //             content += defines.main;
-    //         }
-    //     }
-
-    //     if (params?.length) {
-    //         content = '';
-    //         subs = [];
-    //         for (let i = 0; i < params.length; i++) {
-    //             const param = params[i];
-    //             if (param.in === 'header') continue;
-
-    //             defines = createProp(
-    //                 param.name,
-    //                 param.schema.type,
-    //                 param?.description,
-    //                 param?.required,
-    //                 param?.schema ?? param,
-    //             );
-
-    //             content += defines.main;
-    //         }
-    //     }
-
-    //     return { content, subs };
-    // }
+    private getApiPre(tag: string) {
+        if (tag.includes('C端')) return { pre: '/client-web-api', suf: 'C' };
+        if (tag.includes('B端')) return { pre: '/business-web-api', suf: 'B' };
+        if (tag.includes('Track')) return { pre: '/track-web-api', suf: 'T' };
+        if (tag.includes('User服务')) return { pre: '/user-server-api', suf: 'U' };
+        if (tag.includes('开放平台')) return { pre: '/open-platform-server-api', suf: 'K' };
+        if (tag.includes('数字人服务')) {
+            return { pre: '/digital-human-server-api', suf: 'D' };
+        }
+        return { pre: '', suf: '' };
+    }
 
     // 将 'user/login' 类型的接口名解析成驼峰式 UserLogin
     private createAPIName(api: string) {
@@ -319,6 +319,14 @@ export class Parser {
             .join('');
 
         return apiname;
+    }
+
+    private resetDefines() {
+        this.apiDefines = '';
+        this.interfaceDefines = '';
+        this.apiImports = '';
+        this.responseSubDefineMap.clear();
+        this.apiList = [];
     }
 
     private getJsonData(url: string) {
@@ -341,7 +349,7 @@ export class Parser {
     }
 
     private firstUpperCase(str: string) {
-        return str.toLowerCase().replace(/( |^)[a-z]/g, (L) => L.toUpperCase());
+        return str.replace(/( |^)[a-z]/g, (L) => L.toUpperCase());
     }
 
     private getValueByKey<T>(obj: { [key: string]: T }, targetKey: string): unknown {

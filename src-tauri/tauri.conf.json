@@ -19,6 +19,14 @@
       },
       "path": {
         "all": true
+      },
+      "fs": {
+        "writeFile": true,
+        "exists": true,
+        "removeFile": true,
+        "scope": [
+          "$APPDATA/databases/*"
+        ]
       }
     },
     "bundle": {

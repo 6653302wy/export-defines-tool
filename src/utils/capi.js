@@ -38,7 +38,7 @@ const firstUpperCase = (str) => {
 
 // 创建api文件
 const touchAPIFile = (content) => {
-    const final = `import { Http } from "@vgene/utils";
+    const final = `import { NetManager } from "@vgene/utils";
 ${apiImports}
 ${content}`;
     touchCodeFile(apiFilePath, final);

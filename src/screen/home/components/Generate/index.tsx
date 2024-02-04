@@ -67,7 +67,7 @@ export const Generate: FunctionComponent = (): ReactElement => {
                 />
             </div>
 
-            <Button type="primary" size="large" onClick={() => parser.start(jsonUrl)} className="mt-4">
+            <Button type="primary" size="large" onClick={() => parser.start(savePath, jsonUrl)} className="mt-4">
                 生成
             </Button>
         </div>
