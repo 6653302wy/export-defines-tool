@@ -102,13 +102,11 @@ export class Parser {
                     apiname,
                     apidata?.parameters,
                     this.getValueByKey(apidata?.requestBody, 'schema') as SchemaInfo,
-                    // apidata?.requestBody.content['application/json'].schema,
                 );
-                console.log('开始解析====, request defines: ', api, this.interfaceDefines);
+                // console.log('解析request defines: ', api, this.interfaceDefines);
                 this.interfaceDefines += this.parseResoneDefine(
-                    api,
+                    apiname,
                     this.getValueByKey(apidata?.responses, 'schema') as SchemaInfo,
-                    // apidata.responses['200'].content['application/json'].schema,
                 );
                 // console.log('开始解析====, response defines: ', this.interfaceDefines);
             }
@@ -117,7 +115,7 @@ export class Parser {
 
     // 解析请求数据结构体
     private parseRequestDefine(api: string, parameters?: ParameterInfo[], requestBody?: SchemaInfo) {
-        console.log('parseRequestDefine: ', api, parameters, requestBody);
+        // console.log('parseRequestDefine: ', api, parameters, requestBody);
 
         let defines = '';
 
@@ -131,13 +129,13 @@ export class Parser {
                 defines += this.createParam(obj.name, obj.description, obj.schema.type, obj.required);
             }
         }
-        console.log('parameters defines: ', defines);
 
         // 读取 requestBody 对象
-        const bodyObjects = requestBody?.properties;
-        if (bodyObjects?.length) {
-            // defines += this.parseObjectStruct(bodyObjects);
+        if (requestBody?.properties) {
+            defines += this.parseObjectStruct(requestBody, api);
         }
+
+        // console.log(`${api}Request`, defines);
 
         return `
         export interface ${api}Request {
@@ -162,21 +160,21 @@ export class Parser {
         `;
     }
 
-    private parseObjectStruct(param: SchemaInfo) {
-        const objs = param.properties;
-        if (!objs.length) return '';
+    private parseObjectStruct(param: SchemaInfo, api?: string) {
+        const { properties } = param;
+        const params = Object.keys(properties);
+        if (!params.length) return '';
 
         let defines = '';
-        const params = Array.from(Object.keys(param.properties));
         params.forEach((key) => {
-            const obj = objs[key];
+            const obj = properties[key];
             // 普通数据类型
             if (basicDataTypes.includes(obj.type)) {
                 defines += this.createParam(
                     key,
                     `${obj.description} ${obj.example ? 'expamle: ' : ''}${obj.example || ''}`,
                     obj.type,
-                    param.required.includes(key),
+                    param?.required?.includes(key) || false,
                 );
             } else {
                 // 复杂数据格式， object 和 array ， 需要继续往下一层解析
@@ -185,6 +183,10 @@ export class Parser {
                 // }
             }
         });
+
+        if (api === 'CompanyUserLogin') {
+            console.log('parseObjectStruct', param, defines);
+        }
 
         return defines;
     }
