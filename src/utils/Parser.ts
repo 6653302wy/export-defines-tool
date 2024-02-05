@@ -1,5 +1,5 @@
 /* eslint-disable max-lines-per-function */
-import { Notification } from '@arco-design/web-react';
+import { Message } from '@arco-design/web-react';
 import axios from 'axios';
 import { FilerUtils } from './fileUtls';
 
@@ -52,6 +52,13 @@ export interface JsonDataInfo {
 
 // 基础数据类型
 const basicDataTypes = ['string', 'number', 'integer', 'boolean', 'file'];
+
+interface DataExport {
+    /** 是否只导出data数据 */
+    onlyDataExport: boolean;
+    /** 实际导出data数据参数名 */
+    paramName: string;
+}
 export class Parser {
     private apiJsonFile: JsonDataInfo | undefined = undefined;
     private apiDefines = '';
@@ -62,7 +69,26 @@ export class Parser {
     private apiList: string[] = [];
 
     // 文件保存路径
-    private savePath = '';
+    private savepath = '';
+    // 导出数据类型
+    private onlyDataExport: DataExport = { onlyDataExport: false, paramName: '' };
+
+    set savePath(path: string) {
+        this.savepath = path;
+    }
+
+    get savePath() {
+        return this.savepath;
+    }
+
+    set dataExport(data: DataExport) {
+        this.onlyDataExport = data;
+        console.log('set onlyDataExport: ', this.onlyDataExport);
+    }
+
+    get dataExport() {
+        return this.onlyDataExport;
+    }
 
     start(savePath: string, url?: string, jsonData?: JsonDataInfo) {
         this.savePath = savePath;
@@ -70,17 +96,19 @@ export class Parser {
         this.resetDefines();
 
         if (url) {
+            console.log(' parse by url: ', url);
             this.getJsonData(url);
             return;
         }
 
         if (jsonData) {
+            console.log(' parse by json file: ', jsonData);
             this.apiJsonFile = jsonData;
             this.createModuleCodes();
         }
     }
 
-    private createModuleCodes() {
+    private async createModuleCodes() {
         if (!this.apiJsonFile) return;
         // console.log('createModuleCodes: ', this.apiJsonFile);
 
@@ -118,7 +146,11 @@ export class Parser {
         this.touchAPIFile();
         this.touchInterfaceFile();
 
-        Notification.success({ title: '接口文件生成成功', content: '请到指定目录查看' });
+        Message.success({
+            content: '接口文件生成成功! 请到指定目录查看',
+            showIcon: true,
+            position: 'bottom',
+        });
     }
 
     private defineAPI(
@@ -180,7 +212,12 @@ ${subDefines.join('\n')}
 
     // 解析返回数据结构体
     private parseResoneDefine(api: string, response: SchemaInfo) {
-        const defines = this.parseObjectStruct(response, api);
+        const defines = this.parseObjectStruct(
+            this.dataExport?.onlyDataExport
+                ? (response?.properties?.[this.dataExport.paramName] as unknown as SchemaInfo)
+                : response,
+            api,
+        );
         const subDefines = this.responseSubDefineMap.get(api) || [];
 
         // console.log('parseResoneDefine: ', api, defines, subDefines);
@@ -195,6 +232,14 @@ ${subDefines.join('\n')}
     }
 
     private parseObjectStruct(param: SchemaInfo, api: string) {
+        const { properties, items, required, type } = param;
+
+        // 普通类型
+        if (basicDataTypes.includes(type)) {
+            const paramname = this.dataExport?.onlyDataExport ? this.dataExport.paramName : 'data';
+            return this.createParam(paramname, '', type, param?.required?.includes(paramname) ?? false);
+        }
+
         const createSubDefine = (name: string, subparams: SchemaInfo) => {
             return `export interface ${name} {
                 ${this.parseObjectStruct(subparams, api)}
@@ -202,7 +247,7 @@ ${subDefines.join('\n')}
 `;
         };
 
-        const { properties, items, required, type } = param;
+        // 复杂类型
         let params: string[] = [];
         let propertyObj = properties;
         if (type === 'object') {

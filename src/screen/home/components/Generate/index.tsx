@@ -1,9 +1,11 @@
 /* eslint-disable prefer-regex-literals */
 /* eslint-disable max-lines-per-function */
-import { Button, Divider, Input, Message, Radio, Upload } from '@arco-design/web-react';
+import { Button, Divider, Input, Message, Radio, Switch, Tooltip, Typography, Upload } from '@arco-design/web-react';
 import { UploadItem } from '@arco-design/web-react/es/Upload';
+import { IconQuestionCircle } from '@arco-design/web-react/icon';
 import { open } from '@tauri-apps/api/dialog';
 import { downloadDir } from '@tauri-apps/api/path';
+import classNames from 'classnames';
 import { FunctionComponent, ReactElement, useCallback, useEffect, useState } from 'react';
 import { JsonDataInfo, Parser } from '../../../../utils/Parser';
 
@@ -34,7 +36,7 @@ const isAcceptFile = (file: File, accept: string) => {
         //           .map((x) => x.trim())
         //           .filter((x) => x);
         const fileExtension = file.name.indexOf('.') > -1 ? file.name.split('.').pop() : '';
-        console.log('fileExtension: ', fileExtension);
+        // console.log('fileExtension: ', fileExtension);
         return fileExtension === accept;
     }
     return !!file;
@@ -44,7 +46,10 @@ export const Generate: FunctionComponent = (): ReactElement => {
     const [savePath, setSavePath] = useState(cacheData?.savePath || '');
     const [jsonUrl, setJsonUrl] = useState(cacheData?.jsonUrl || '');
     const [jsonData, setJsonData] = useState<JsonDataInfo>({} as JsonDataInfo);
-    const [exportType, setExportType] = useState<ExportType>(ExportType.URL);
+    const [exportType, setExportType] = useState<ExportType>(ExportType.JSON);
+
+    const [onlyDataExport, setOnlyDataExport] = useState(false);
+    const [paramName, setparamName] = useState('data');
 
     const onSaveOutputDir = useCallback(async () => {
         const filePath = await open({
@@ -71,16 +76,13 @@ export const Generate: FunctionComponent = (): ReactElement => {
 
     const onFileUploaded = (files: UploadItem[]) => {
         const file = files[0]?.originFile;
-        console.log('onFileUploaded: ', file);
+
         if (!file) return;
 
         const reader = new FileReader();
         reader.readAsText(file, 'UTF-8');
         reader.onload = (fileReader) => {
             const fileData = fileReader?.target?.result;
-            // console.log(JSON.parse(fileData as string));
-            // console.log(JSON.parse(reader.result as string));
-            // 上面的两个输出相同
             setJsonData(JSON.parse(fileData as string) as JsonDataInfo);
         };
     };
@@ -92,6 +94,10 @@ export const Generate: FunctionComponent = (): ReactElement => {
     }, [exportType, jsonData, jsonUrl, savePath]);
 
     useEffect(() => {
+        parser.dataExport = { onlyDataExport, paramName };
+    }, [paramName, onlyDataExport]);
+
+    useEffect(() => {
         setDownloadDir();
     }, [setDownloadDir]);
 
@@ -100,10 +106,46 @@ export const Generate: FunctionComponent = (): ReactElement => {
             {/* <p className="text-[--color-text-1] text-[16px] font-medium">生成代码文件</p> */}
             {/* <Divider /> */}
 
-            <div className="my-4">
+            <div className="my-6">
                 <span className=" mr-2 w-20 inline-block ">导出目录: </span>
-                <Input style={{ width: 420 }} value={savePath} className=" mr-2 " />
+                <Input style={{ width: 460 }} value={savePath} className=" mr-4 " />
                 <Button onClick={onSaveOutputDir}>浏览</Button>
+            </div>
+
+            <div className={classNames('flex items-center my-4 ', { 'text-[#87888F]': !onlyDataExport })}>
+                <span className="  inline-block">返回数据字段名（默认data）:</span>
+                <Input
+                    style={{ width: 120 }}
+                    defaultValue={paramName}
+                    className="ml-1 mr-4"
+                    onChange={(value) => setparamName(value)}
+                    disabled={!onlyDataExport}
+                />
+
+                <Switch checked={onlyDataExport} onChange={(value) => setOnlyDataExport(value)} />
+
+                <div className="flex items-center text-[#87888F] text-[12px]">
+                    <p className="ml-2 mr-1 ">注： 返回数据只导出实际的数据</p>
+                    <Tooltip
+                        content={
+                            <div>
+                                <div>
+                                    例如，如果接口返回了
+                                    <Typography.Text
+                                        code
+                                    >{`{"code": 0, "message": "success", "data": {"name": "wanpeng", "age": 25}}`}</Typography.Text>
+                                    ,则只会导出
+                                    <Typography.Text code>{`{"name": "wanpeng", "age": 25}`}</Typography.Text>
+                                </div>
+                            </div>
+                            // <p>{`例如，如果接口返回了{"code": 0, "message": "success", "data": {"name": "wanpeng", "age": 25}}，则只会导出{"name": "wanpeng", "age": 25}`}</p>
+                        }
+                    >
+                        <div className="cursor-pointer">
+                            <IconQuestionCircle style={{ fontSize: 16, marginTop: 2 }} />
+                        </div>
+                    </Tooltip>
+                </div>
             </div>
 
             <Divider />
@@ -125,17 +167,19 @@ export const Generate: FunctionComponent = (): ReactElement => {
                         style={{ width: 420 }}
                         className=" mr-2 "
                         defaultValue={jsonUrl}
+                        placeholder="输入Swagger的JSON文件URL"
                         onChange={(value) => onSaveJsonUrl(value)}
                     />
                 </div>
             ) : (
                 <Upload
+                    // style={{ width: 320, height: 100 }}
                     drag
                     multiple={false}
+                    // limit={1}
                     accept=".json"
                     directory={false}
                     showUploadList={false}
-                    action="/"
                     onDrop={(e) => {
                         const uploadFile = e.dataTransfer.files[0];
                         if (!isAcceptFile(uploadFile, 'json'))
@@ -145,11 +189,19 @@ export const Generate: FunctionComponent = (): ReactElement => {
                 />
             )}
 
-            <div className="flex items-center">
-                <Button type="primary" size="large" onClick={onCreateCodeClick} className="mt-4">
+            <div className="w-full flex justify-center items-center mt-10">
+                <Button
+                    disabled={
+                        (exportType === ExportType.URL && !jsonUrl) ||
+                        (exportType === ExportType.JSON && !jsonData.tags?.length)
+                    }
+                    type="primary"
+                    size="large"
+                    onClick={onCreateCodeClick}
+                    className=" w-[100px] h-[38px]"
+                >
                     生成
                 </Button>
-                <span className="ml-4">返回数据只导出实际的data</span>
             </div>
         </div>
     );
