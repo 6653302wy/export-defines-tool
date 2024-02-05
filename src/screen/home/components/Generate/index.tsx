@@ -46,7 +46,7 @@ export const Generate: FunctionComponent = (): ReactElement => {
     const [savePath, setSavePath] = useState(cacheData?.savePath || '');
     const [jsonUrl, setJsonUrl] = useState(cacheData?.jsonUrl || '');
     const [jsonData, setJsonData] = useState<JsonDataInfo>({} as JsonDataInfo);
-    const [exportType, setExportType] = useState<ExportType>(ExportType.JSON);
+    const [exportType, setExportType] = useState<ExportType>(ExportType.URL);
 
     const [onlyDataExport, setOnlyDataExport] = useState(false);
     const [paramName, setparamName] = useState('data');

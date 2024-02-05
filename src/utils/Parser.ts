@@ -380,6 +380,11 @@ ${subDefines.join('\n')}
                     this.apiJsonFile = jsonData;
                     this.createModuleCodes();
                 } else {
+                    Message.error({
+                        content: 'JSON文件下载失败，请检查网络连接或URL地址是否正确。',
+                        showIcon: true,
+                        position: 'bottom',
+                    });
                     console.error('Failed to download JSON file. HTTP Status:', response.status);
                 }
             })
