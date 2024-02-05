@@ -48,7 +48,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "com.apifox.tool",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
