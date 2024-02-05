@@ -212,12 +212,10 @@ ${subDefines.join('\n')}
 
     // 解析返回数据结构体
     private parseResoneDefine(api: string, response: SchemaInfo) {
-        const defines = this.parseObjectStruct(
-            this.dataExport?.onlyDataExport
-                ? (response?.properties?.[this.dataExport.paramName] as unknown as SchemaInfo)
-                : response,
-            api,
-        );
+        const parserObj = this.dataExport?.onlyDataExport
+            ? (response?.properties?.[this.dataExport.paramName] as unknown as SchemaInfo) || response
+            : response;
+        const defines = this.parseObjectStruct(parserObj, api);
         const subDefines = this.responseSubDefineMap.get(api) || [];
 
         // console.log('parseResoneDefine: ', api, defines, subDefines);
@@ -330,6 +328,7 @@ ${subDefines.join('\n')}
         await FilerUtils.saveTextFile(`${this.savePath}/Interface.ts`, this.interfaceDefines);
     }
 
+    // todo 添加服务， 不同服务api前缀不同
     private getApiPre(tag: string) {
         if (tag.includes('C端')) return { pre: '/client-web-api', suf: 'C' };
         if (tag.includes('B端')) return { pre: '/business-web-api', suf: 'B' };

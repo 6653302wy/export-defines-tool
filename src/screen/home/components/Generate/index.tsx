@@ -2,7 +2,7 @@
 /* eslint-disable max-lines-per-function */
 import { Button, Divider, Input, Message, Radio, Switch, Tooltip, Typography, Upload } from '@arco-design/web-react';
 import { UploadItem } from '@arco-design/web-react/es/Upload';
-import { IconQuestionCircle } from '@arco-design/web-react/icon';
+import { IconPaste, IconQuestionCircle, IconShareExternal } from '@arco-design/web-react/icon';
 import { open } from '@tauri-apps/api/dialog';
 import { downloadDir } from '@tauri-apps/api/path';
 import classNames from 'classnames';
@@ -107,7 +107,7 @@ export const Generate: FunctionComponent = (): ReactElement => {
             {/* <Divider /> */}
 
             <div className="my-6">
-                <span className=" mr-2 w-20 inline-block ">导出目录: </span>
+                <span className=" mr-2 w-20 inline-block ">生成目录: </span>
                 <Input style={{ width: 460 }} value={savePath} className=" mr-4 " />
                 <Button onClick={onSaveOutputDir}>浏览</Button>
             </div>
@@ -125,20 +125,19 @@ export const Generate: FunctionComponent = (): ReactElement => {
                 <Switch checked={onlyDataExport} onChange={(value) => setOnlyDataExport(value)} />
 
                 <div className="flex items-center text-[#87888F] text-[12px]">
-                    <p className="ml-2 mr-1 ">注： 返回数据只导出实际的数据</p>
+                    <p className="ml-2 mr-1 ">注： 打开此选项后，只生成实际的数据</p>
                     <Tooltip
                         content={
                             <div>
                                 <div>
-                                    例如，如果接口返回了
+                                    <p>例如，如果接口返回了</p>
                                     <Typography.Text
                                         code
                                     >{`{"code": 0, "message": "success", "data": {"name": "wanpeng", "age": 25}}`}</Typography.Text>
-                                    ,则只会导出
+                                    <p>,则只会导出</p>
                                     <Typography.Text code>{`{"name": "wanpeng", "age": 25}`}</Typography.Text>
                                 </div>
                             </div>
-                            // <p>{`例如，如果接口返回了{"code": 0, "message": "success", "data": {"name": "wanpeng", "age": 25}}，则只会导出{"name": "wanpeng", "age": 25}`}</p>
                         }
                     >
                         <div className="cursor-pointer">
@@ -172,21 +171,38 @@ export const Generate: FunctionComponent = (): ReactElement => {
                     />
                 </div>
             ) : (
-                <Upload
-                    // style={{ width: 320, height: 100 }}
-                    drag
-                    multiple={false}
-                    // limit={1}
-                    accept=".json"
-                    directory={false}
-                    showUploadList={false}
-                    onDrop={(e) => {
-                        const uploadFile = e.dataTransfer.files[0];
-                        if (!isAcceptFile(uploadFile, 'json'))
-                            Message.info('不接受的文件类型，请重新上传指定文件类型~');
-                    }}
-                    onChange={onFileUploaded}
-                />
+                <div className="w-full flex justify-center items-center ">
+                    <Upload
+                        drag
+                        style={{ width: 380 }}
+                        multiple={false}
+                        // limit={1}
+                        accept=".json"
+                        directory={false}
+                        showUploadList={false}
+                        onDrop={(e) => {
+                            const uploadFile = e.dataTransfer.files[0];
+                            if (!isAcceptFile(uploadFile, 'json'))
+                                Message.info('不接受的文件类型，请重新上传指定文件类型~');
+                        }}
+                        onChange={onFileUploaded}
+                    >
+                        <div className="w-[380px] h-[158px] flex flex-col justify-center items-center border border-dashed border-[var(--color-fill-4)] rounded text-center bg-[var(--color-fill-2)] ">
+                            {!jsonData?.tags?.length ? (
+                                <>
+                                    <IconShareExternal style={{ fontSize: 24, color: '#3680E8' }} />
+                                    <p className="whitespace-pre-wrap">点击或拖拽文件到此区域</p>
+                                    <p className="text-[12px] text-[#87888F] mt-1">OpenAPI/Swagger的JSON文件</p>
+                                </>
+                            ) : (
+                                <>
+                                    <IconPaste style={{ fontSize: 24, color: '#3680E8' }} />
+                                    <p className="mt-1 text-[12px]  text-[#87888F] ">点击或拖拽重新上传</p>
+                                </>
+                            )}
+                        </div>
+                    </Upload>
+                </div>
             )}
 
             <div className="w-full flex justify-center items-center mt-10">
