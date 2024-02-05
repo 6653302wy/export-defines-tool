@@ -25,7 +25,7 @@
         "exists": true,
         "removeFile": true,
         "scope": [
-          "$APPDATA/databases/*"
+          "*"
         ]
       }
     },
@@ -74,7 +74,8 @@
         "height": 600,
         "resizable": true,
         "title": "define-tool",
-        "width": 800
+        "width": 800,
+        "fileDropEnabled": false
       }
     ]
   }

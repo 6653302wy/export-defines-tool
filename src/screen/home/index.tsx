@@ -44,7 +44,7 @@ export const Home: FC = () => {
 
     return (
         <div className=" w-screen h-screen flex ">
-            <Menu
+            {/* <Menu
                 style={{ width: 120, backgroundColor: '#F6F7F9' }}
                 mode="vertical"
                 defaultSelectedKeys={['1']}
@@ -52,7 +52,7 @@ export const Home: FC = () => {
             >
                 <Menu.Item key="1">生成</Menu.Item>
                 <Menu.Item key="2">配置</Menu.Item>
-            </Menu>
+            </Menu> */}
             <section className="flex-1 pt-2 px-6">
                 <Suspense fallback={<LazyLoading />}>
                     <MenuPane />

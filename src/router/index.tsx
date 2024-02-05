@@ -1,8 +1,7 @@
 import { FC } from 'react';
-import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
-import { NotFound } from '../screen/404';
-import { AppLayOut } from '../screen/app-layout';
-import { Auth } from '../screen/auth';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+
+import { Home } from '../screen/home';
 import { RoutersMap } from './routeList';
 
 export const Routers: FC = () => {
@@ -10,14 +9,14 @@ export const Routers: FC = () => {
         <BrowserRouter basename={process.env.ROUTER_BASE}>
             <Routes>
                 <>
-                    <Route index element={<Auth />} />
-                    <Route path="*" element={<NotFound />} />
+                    <Route index element={<Home />} />
+                    {/* <Route path="*" element={<NotFound />} /> */}
                     <Route>
                         {RoutersMap.single.map((route, index) => {
                             return <Route key={index} path={route.path} element={route.element} />;
                         })}
                     </Route>
-                    <Route
+                    {/* <Route
                         element={
                             <AppLayOut>
                                 <Outlet />
@@ -27,7 +26,7 @@ export const Routers: FC = () => {
                         {RoutersMap.layout.map((route, index) => {
                             return <Route key={index} path={route.path} element={route.element} />;
                         })}
-                    </Route>
+                    </Route> */}
                 </>
             </Routes>
         </BrowserRouter>

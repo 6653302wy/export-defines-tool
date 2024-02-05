@@ -1,5 +1,5 @@
 /* eslint-disable max-lines-per-function */
-import { Message } from '@arco-design/web-react';
+import { Notification } from '@arco-design/web-react';
 import axios from 'axios';
 import { FilerUtils } from './fileUtls';
 
@@ -45,7 +45,7 @@ interface PathInfo {
     // 返回数据
     responses: { '200': { content: { 'application/json': { schema: SchemaInfo } } } };
 }
-interface JsonDataInfo {
+export interface JsonDataInfo {
     tags: { name: string }[];
     paths: { [key: string]: { [key: string]: PathInfo } };
 }
@@ -118,7 +118,7 @@ export class Parser {
         this.touchAPIFile();
         this.touchInterfaceFile();
 
-        Message.info('接口文件生成成功');
+        Notification.success({ title: '接口文件生成成功', content: '请到指定目录查看' });
     }
 
     private defineAPI(
@@ -215,10 +215,6 @@ ${subDefines.join('\n')}
         if (!params.length) return '';
 
         const subDefines = api ? this.responseSubDefineMap.get(api) || [] : [];
-
-        if (api === 'VideoDraftSaveRequest') {
-            console.log(param, subDefines, params);
-        }
 
         let defines = '';
         params.forEach((key) => {
