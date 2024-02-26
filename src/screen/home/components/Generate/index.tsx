@@ -1,26 +1,28 @@
 /* eslint-disable prefer-regex-literals */
 /* eslint-disable max-lines-per-function */
-import { Button, Divider, Input, Message, Radio, Switch, Tooltip, Typography, Upload } from '@arco-design/web-react';
+import { Button, Divider, Input, Message, Radio, Upload } from '@arco-design/web-react';
 import { UploadItem } from '@arco-design/web-react/es/Upload';
-import { IconPaste, IconQuestionCircle, IconShareExternal } from '@arco-design/web-react/icon';
+import { IconPaste, IconShareExternal } from '@arco-design/web-react/icon';
 import { open } from '@tauri-apps/api/dialog';
 import { downloadDir } from '@tauri-apps/api/path';
-import classNames from 'classnames';
-import { FunctionComponent, ReactElement, useCallback, useEffect, useState } from 'react';
+import { FunctionComponent, ReactElement, useCallback, useContext, useEffect, useState } from 'react';
+import { GlobalContext } from '../../../../store/globalStore';
 import { JsonDataInfo, Parser } from '../../../../utils/Parser';
+import { CustomRequestOption } from './components/CustomRequestOption';
+import { OnlyDataExportCom } from './components/OnlyDataExport';
 
-interface Cache {
-    jsonUrl?: string;
-    savePath?: string;
-}
+// interface Cache {
+//     jsonUrl?: string;
+//     savePath?: string;
+// }
 
 const parser = new Parser();
-const cache = localStorage.getItem('cache');
-let cacheData = cache ? (JSON.parse(cache) as Cache) : ({} as Cache);
+// const cache = localStorage.getItem('cache');
+// let cacheData = cache ? (JSON.parse(cache) as Cache) : ({} as Cache);
 // console.log('cacheData: ', cacheData);
-const saveInLocalCache = () => {
-    localStorage.setItem('cache', JSON.stringify(cacheData));
-};
+// const saveInLocalCache = () => {
+//     localStorage.setItem('cache', JSON.stringify(cacheData));
+// };
 
 enum ExportType {
     JSON = 'JSON',
@@ -43,13 +45,13 @@ const isAcceptFile = (file: File, accept: string) => {
 };
 
 export const Generate: FunctionComponent = (): ReactElement => {
-    const [savePath, setSavePath] = useState(cacheData?.savePath || '');
-    const [jsonUrl, setJsonUrl] = useState(cacheData?.jsonUrl || '');
+    // const [savePath, setSavePath] = useState(cacheData?.savePath || '');
+    // const [jsonUrl, setJsonUrl] = useState(cacheData?.jsonUrl || '');
     const [jsonData, setJsonData] = useState<JsonDataInfo>({} as JsonDataInfo);
     const [exportType, setExportType] = useState<ExportType>(ExportType.URL);
 
-    const [onlyDataExport, setOnlyDataExport] = useState(false);
-    const [paramName, setparamName] = useState('data');
+    const { savePath, setSavePath, jsonUrl, setJsonUrl, onlyDataExport, customRequest, saveInLocalCache } =
+        useContext(GlobalContext);
 
     const onSaveOutputDir = useCallback(async () => {
         const filePath = await open({
@@ -59,20 +61,23 @@ export const Generate: FunctionComponent = (): ReactElement => {
             defaultPath: await downloadDir(),
         });
         setSavePath((filePath as string) || '');
-        cacheData = { ...cacheData, savePath: filePath as string };
-        saveInLocalCache();
-    }, []);
+        // cacheData = { ...cacheData, savePath: filePath as string };
+        // saveInLocalCache({ savePath: filePath as string });
+    }, [setSavePath]);
 
-    const onSaveJsonUrl = useCallback((value: string) => {
-        setJsonUrl(value);
-        cacheData = { ...cacheData, jsonUrl: value };
-        saveInLocalCache();
-    }, []);
+    const onSaveJsonUrl = useCallback(
+        (value: string) => {
+            setJsonUrl(value);
+            // cacheData = { ...cacheData, jsonUrl: value };
+            // saveInLocalCache({ jsonUrl: value });
+        },
+        [setJsonUrl],
+    );
 
     const setDownloadDir = useCallback(async () => {
         if (savePath) return;
         setSavePath((await downloadDir()) || '');
-    }, [savePath]);
+    }, [savePath, setSavePath]);
 
     const onFileUploaded = (files: UploadItem[]) => {
         const file = files[0]?.originFile;
@@ -94,8 +99,9 @@ export const Generate: FunctionComponent = (): ReactElement => {
     }, [exportType, jsonData, jsonUrl, savePath]);
 
     useEffect(() => {
-        parser.dataExport = { onlyDataExport, paramName };
-    }, [paramName, onlyDataExport]);
+        parser.dataExport = onlyDataExport;
+        parser.customCode = customRequest;
+    }, [customRequest, onlyDataExport]);
 
     useEffect(() => {
         setDownloadDir();
@@ -103,49 +109,15 @@ export const Generate: FunctionComponent = (): ReactElement => {
 
     return (
         <div className="">
-            {/* <p className="text-[--color-text-1] text-[16px] font-medium">生成代码文件</p> */}
-            {/* <Divider /> */}
-
             <div className="my-6">
                 <span className=" mr-2 w-20 inline-block ">生成目录: </span>
                 <Input style={{ width: 460 }} value={savePath} className=" mr-4 " />
                 <Button onClick={onSaveOutputDir}>浏览</Button>
             </div>
 
-            <div className={classNames('flex items-center my-4 ', { 'text-[#87888F]': !onlyDataExport })}>
-                <span className="  inline-block">返回数据字段名（默认data）:</span>
-                <Input
-                    style={{ width: 120 }}
-                    defaultValue={paramName}
-                    className="ml-1 mr-4"
-                    onChange={(value) => setparamName(value)}
-                    disabled={!onlyDataExport}
-                />
+            <OnlyDataExportCom />
 
-                <Switch checked={onlyDataExport} onChange={(value) => setOnlyDataExport(value)} />
-
-                <div className="flex items-center text-[#87888F] text-[12px]">
-                    <p className="ml-2 mr-1 ">注： 打开此选项后，只生成实际的数据</p>
-                    <Tooltip
-                        content={
-                            <div>
-                                <div>
-                                    <p>例如，如果接口返回了</p>
-                                    <Typography.Text
-                                        code
-                                    >{`{"code": 0, "message": "success", "data": {"name": "wanpeng", "age": 25}}`}</Typography.Text>
-                                    <p>,则只会导出</p>
-                                    <Typography.Text code>{`{"name": "wanpeng", "age": 25}`}</Typography.Text>
-                                </div>
-                            </div>
-                        }
-                    >
-                        <div className="cursor-pointer">
-                            <IconQuestionCircle style={{ fontSize: 16, marginTop: 2 }} />
-                        </div>
-                    </Tooltip>
-                </div>
-            </div>
+            <CustomRequestOption />
 
             <Divider />
 

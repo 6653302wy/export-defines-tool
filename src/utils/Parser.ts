@@ -1,6 +1,7 @@
 /* eslint-disable max-lines-per-function */
 import { Message } from '@arco-design/web-react';
 import axios from 'axios';
+import { CustomRequest, OnlyDataExport } from '../store/globalStore';
 import { FilerUtils } from './fileUtls';
 
 interface PropertyInfo {
@@ -53,12 +54,6 @@ export interface JsonDataInfo {
 // 基础数据类型
 const basicDataTypes = ['string', 'number', 'integer', 'boolean', 'file'];
 
-interface DataExport {
-    /** 是否只导出data数据 */
-    onlyDataExport: boolean;
-    /** 实际导出data数据参数名 */
-    paramName: string;
-}
 export class Parser {
     private apiJsonFile: JsonDataInfo | undefined = undefined;
     private apiDefines = '';
@@ -70,8 +65,11 @@ export class Parser {
 
     // 文件保存路径
     private savepath = '';
+
     // 导出数据类型
-    private onlyDataExport: DataExport = { onlyDataExport: false, paramName: '' };
+    private onlyDataExport: OnlyDataExport = { opend: false, paramName: '' };
+    // 自定义请求代码
+    private customRequestCode: CustomRequest = { opend: false, importCode: '', requestCode: '' };
 
     set savePath(path: string) {
         this.savepath = path;
@@ -81,13 +79,18 @@ export class Parser {
         return this.savepath;
     }
 
-    set dataExport(data: DataExport) {
+    set dataExport(data: OnlyDataExport) {
         this.onlyDataExport = data;
         console.log('set onlyDataExport: ', this.onlyDataExport);
     }
 
     get dataExport() {
         return this.onlyDataExport;
+    }
+
+    set customCode(data: CustomRequest) {
+        this.customRequestCode = data;
+        console.log('set customCode: ', this.customRequestCode);
     }
 
     start(savePath: string, url?: string, jsonData?: JsonDataInfo) {
@@ -164,6 +167,22 @@ export class Parser {
 
         let headerContentType = apidata?.requestBody ? Object.keys(apidata?.requestBody?.content)?.[0] : '';
         headerContentType = reqMethod === 'post' && !apidata?.requestBody ? 'multipart/form-data' : headerContentType;
+
+        if (this.customRequestCode.opend) {
+            return `
+/**
+* ${apidata?.description || apidata?.summary || ''}
+* ${apidata?.deprecated ? '@deprecated 接口已弃用' : ''}
+*/
+export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDefine}): Promise<${responseDefine}> => {
+    return ${this.customRequestCode.requestCode
+        .replace('@url', `'${this.getApiPre(apidata?.tags?.[0] || '').pre}${apiPath}'`)
+        .replace('@method', `'${reqMethod}'`)
+        .replace('@data', `data`)
+        .replace('@contentType', `'${headerContentType || 'application/json;charset=utf-8'}'`)};
+}\n`;
+        }
+
         return `
 /**
  * ${apidata?.description || apidata?.summary || ''}
@@ -212,8 +231,8 @@ ${subDefines.join('\n')}
 
     // 解析返回数据结构体
     private parseResoneDefine(api: string, response: SchemaInfo) {
-        const parserObj = this.dataExport?.onlyDataExport
-            ? (response?.properties?.[this.dataExport.paramName] as unknown as SchemaInfo) || response
+        const parserObj = this.dataExport?.opend
+            ? (response?.properties?.[this.dataExport?.paramName || ''] as unknown as SchemaInfo) || response
             : response;
         const defines = this.parseObjectStruct(parserObj, api);
         const subDefines = this.responseSubDefineMap.get(api) || [];
@@ -234,7 +253,7 @@ ${subDefines.join('\n')}
 
         // 普通类型
         if (basicDataTypes.includes(type)) {
-            const paramname = this.dataExport?.onlyDataExport ? this.dataExport.paramName : 'data';
+            const paramname = this.dataExport?.opend ? this.dataExport?.paramName || 'data' : 'data';
             return this.createParam(paramname, '', type, param?.required?.includes(paramname) ?? false);
         }
 
@@ -316,8 +335,11 @@ ${subDefines.join('\n')}
     }
 
     // 创建api文件
+
     private async touchAPIFile() {
-        const final = `import { NetManager } from "@vgene/utils";
+        const isDefault = !this.customRequestCode.opend;
+        // 'import { NetManager } from "@vgene/utils"'
+        const final = `${isDefault ? 'import axios from "axios" ' : this.customRequestCode.importCode};
     ${this.apiImports}
     ${this.apiDefines}`;
         await FilerUtils.saveTextFile(`${this.savePath}/Apis.ts`, final);
