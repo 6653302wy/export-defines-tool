@@ -11,18 +11,7 @@ import { JsonDataInfo, Parser } from '../../../../utils/Parser';
 import { CustomRequestOption } from './components/CustomRequestOption';
 import { OnlyDataExportCom } from './components/OnlyDataExport';
 
-// interface Cache {
-//     jsonUrl?: string;
-//     savePath?: string;
-// }
-
 const parser = new Parser();
-// const cache = localStorage.getItem('cache');
-// let cacheData = cache ? (JSON.parse(cache) as Cache) : ({} as Cache);
-// console.log('cacheData: ', cacheData);
-// const saveInLocalCache = () => {
-//     localStorage.setItem('cache', JSON.stringify(cacheData));
-// };
 
 enum ExportType {
     JSON = 'JSON',
@@ -45,13 +34,10 @@ const isAcceptFile = (file: File, accept: string) => {
 };
 
 export const Generate: FunctionComponent = (): ReactElement => {
-    // const [savePath, setSavePath] = useState(cacheData?.savePath || '');
-    // const [jsonUrl, setJsonUrl] = useState(cacheData?.jsonUrl || '');
     const [jsonData, setJsonData] = useState<JsonDataInfo>({} as JsonDataInfo);
     const [exportType, setExportType] = useState<ExportType>(ExportType.URL);
 
-    const { savePath, setSavePath, jsonUrl, setJsonUrl, onlyDataExport, customRequest, saveInLocalCache } =
-        useContext(GlobalContext);
+    const { savePath, setSavePath, jsonUrl, setJsonUrl, onlyDataExport, customRequest } = useContext(GlobalContext);
 
     const onSaveOutputDir = useCallback(async () => {
         const filePath = await open({
@@ -61,15 +47,11 @@ export const Generate: FunctionComponent = (): ReactElement => {
             defaultPath: await downloadDir(),
         });
         setSavePath((filePath as string) || '');
-        // cacheData = { ...cacheData, savePath: filePath as string };
-        // saveInLocalCache({ savePath: filePath as string });
     }, [setSavePath]);
 
     const onSaveJsonUrl = useCallback(
         (value: string) => {
             setJsonUrl(value);
-            // cacheData = { ...cacheData, jsonUrl: value };
-            // saveInLocalCache({ jsonUrl: value });
         },
         [setJsonUrl],
     );
