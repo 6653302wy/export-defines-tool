@@ -44,8 +44,8 @@ export const GlobalStore: FC<{ children: ReactElement }> = ({ children }) => {
     });
     const [customRequest, setcustomRequest] = useState({
         opend: cacheData?.customRequest?.opend || false,
-        importCode: '',
-        requestCode: '',
+        importCode: cacheData?.customRequest.importCode || '',
+        requestCode: cacheData?.customRequest.requestCode || '',
     });
 
     const updateOnlyDataExportInfo = useCallback((info: Partial<OnlyDataExport>) => {
