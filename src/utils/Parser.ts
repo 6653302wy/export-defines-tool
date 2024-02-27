@@ -31,6 +31,11 @@ interface ParameterInfo {
     schema: PropertyInfo;
 }
 
+interface ServerInfo {
+    url: string;
+    description: string;
+}
+
 interface PathInfo {
     // 协议名
     summary: string;
@@ -49,6 +54,7 @@ interface PathInfo {
 export interface JsonDataInfo {
     tags: { name: string }[];
     paths: { [key: string]: { [key: string]: PathInfo } };
+    servers: ServerInfo[];
 }
 
 // 基础数据类型
@@ -127,7 +133,14 @@ export class Parser {
                 const responseApi = `${apiname}Response`;
 
                 // 创建api
-                this.apiDefines += this.defineAPI(api, requestApi, responseApi, apidata, reqMethod);
+                this.apiDefines += this.defineAPI(
+                    api,
+                    requestApi,
+                    responseApi,
+                    apidata,
+                    reqMethod,
+                    this.getValueByKey(apidata?.responses, 'schema') as SchemaInfo,
+                );
 
                 // 创建请求数据结构体
                 this.interfaceDefines += this.parseRequestDefine(
@@ -162,11 +175,26 @@ export class Parser {
         responseDefine: string,
         apidata: PathInfo,
         reqMethod: string,
+        responseData: SchemaInfo,
     ) {
         const apiname = this.createAPIName(apiPath);
 
         let headerContentType = apidata?.requestBody ? Object.keys(apidata?.requestBody?.content)?.[0] : '';
         headerContentType = reqMethod === 'post' && !apidata?.requestBody ? 'multipart/form-data' : headerContentType;
+
+        const getResponseDefine = () => {
+            const parserObj = this.dataExport?.opend
+                ? (responseData?.properties?.[this.dataExport?.paramName || ''] as unknown as SchemaInfo) ||
+                  responseData
+                : responseData;
+            const { type } = parserObj;
+            if (!this.dataExport?.opend) return responseDefine;
+            // 普通类型
+            if (basicDataTypes.includes(type)) return type;
+            // 复杂类型 object / array
+            return type === 'array' ? `${responseDefine}[]` : responseDefine;
+        };
+        const respDefineName = getResponseDefine();
 
         if (this.customRequestCode.opend) {
             return `
@@ -174,7 +202,7 @@ export class Parser {
 * ${apidata?.description || apidata?.summary || ''}
 * ${apidata?.deprecated ? '@deprecated 接口已弃用' : ''}
 */
-export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDefine}): Promise<${responseDefine}> => {
+export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDefine}): Promise<${respDefineName}> => {
     return ${this.customRequestCode.requestCode
         .replace('@url', `'${this.getApiPre(apidata?.tags?.[0] || '').pre}${apiPath}'`)
         .replace('@method', `'${reqMethod}'`)
@@ -188,7 +216,7 @@ export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDe
  * ${apidata?.description || apidata?.summary || ''}
  * ${apidata?.deprecated ? '@deprecated 接口已弃用' : ''}
  */
-export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDefine}): Promise<${responseDefine}> => {
+export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDefine}): Promise<${respDefineName}> => {
     return NetManager.inst.request('${
         this.getApiPre(apidata?.tags?.[0] || '').pre
     }${apiPath}', '${reqMethod}', data, '${headerContentType || 'application/json;charset=utf-8'}');
@@ -352,15 +380,26 @@ ${subDefines.join('\n')}
 
     // todo 添加服务， 不同服务api前缀不同
     private getApiPre(tag: string) {
-        if (tag.includes('C端')) return { pre: '/client-web-api', suf: 'C' };
-        if (tag.includes('B端')) return { pre: '/business-web-api', suf: 'B' };
-        if (tag.includes('Track')) return { pre: '/track-web-api', suf: 'T' };
-        if (tag.includes('User服务')) return { pre: '/user-server-api', suf: 'U' };
-        if (tag.includes('开放平台')) return { pre: '/open-platform-server-api', suf: 'K' };
-        if (tag.includes('数字人服务')) {
-            return { pre: '/digital-human-server-api', suf: 'D' };
+        // if (tag.includes('C端')) return { pre: '/client-web-api', suf: 'C' };
+        // if (tag.includes('B端')) return { pre: '/business-web-api', suf: 'B' };
+        // if (tag.includes('Track')) return { pre: '/track-web-api', suf: 'T' };
+        // if (tag.includes('User服务')) return { pre: '/user-server-api', suf: 'U' };
+        // if (tag.includes('开放平台')) return { pre: '/open-platform-server-api', suf: 'K' };
+        // if (tag.includes('数字人服务')) {
+        //     return { pre: '/digital-human-server-api', suf: 'D' };
+        // }
+        if (tag.includes('竹园四期/首页-生产管理')) {
+            return { pre: '/home/zyscglService', suf: 'L' };
         }
-        return { pre: '', suf: '' };
+        if (!this.apiJsonFile?.servers?.length) return { pre: '', suf: '' };
+
+        // console.log(
+        //     'pre url: ',
+        //     this.apiJsonFile,
+        //     tag,
+        //     this.apiJsonFile.servers.find((server) => server.description.includes(tag))?.url,
+        // );
+        return { pre: this.apiJsonFile.servers.find((server) => server.description.includes(tag))?.url || '', suf: '' };
     }
 
     // 将 'user/login' 类型的接口名解析成驼峰式 UserLogin

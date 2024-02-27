@@ -39,7 +39,7 @@ export const GlobalStore: FC<{ children: ReactElement }> = ({ children }) => {
     const [savePath, setSavePath] = useState(cacheData?.savePath || '');
     const [jsonUrl, setJsonUrl] = useState(cacheData?.jsonUrl || '');
     const [onlyDataExport, setonlyDataExport] = useState({
-        opend: true,
+        opend: cacheData?.onlyDataExport?.opend || false,
         paramName: 'data',
     });
     const [customRequest, setcustomRequest] = useState({
