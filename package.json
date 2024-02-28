@@ -1,6 +1,6 @@
 {
   "name": "react-template",
-  "version": "0.0.0",
+  "version": "1.0.2",
   "description": "react app template with react-router, tailwindcss and more",
   "main": "index.js",
   "scripts": {
