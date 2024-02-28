@@ -2,12 +2,14 @@
 
 根据 apifox 导出的 swagger 格式的 json 文件，导出 TypeScript 的接口和接口参数数据定义。
 
-![预览](/src/assets/images/preview.jpg)
+![预览](/src/assets/images/preview1.jpg)
+![预览](/src/assets/images/preview2.jpg)
+![预览](/src/assets/images/preview3.jpg)
 
-主体功能已完成，后续将添加以下功能：
+![生成的代码示例](/src/assets/images/preview4.jpg)
+![生成的代码示例](/src/assets/images/preview5.jpg)
 
-// todo
+## 安装
 
-1. 添加可配置服务和前缀功能 done
-2. 添加自定义接口调用函数 90%
-    - 某些代码可能要区分 get/post 请求参数名，例如：`params` 和 `data`。 目前只做了 data 参数的处理。
+release 里有编译好的安装包文件，直接下载安装即可。 目前暂时只编译了 macos 版本。
+也可以自行下载源码编译。

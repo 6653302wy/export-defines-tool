@@ -1,4 +1,5 @@
-import { Input, Switch } from '@arco-design/web-react';
+import { Input, Switch, Tooltip } from '@arco-design/web-react';
+import { IconQuestionCircle } from '@arco-design/web-react/icon';
 import classNames from 'classnames';
 import { FC, ReactElement, useContext } from 'react';
 import { GlobalContext } from '../../../../../../store/globalStore';
@@ -12,7 +13,7 @@ export const CustomRequestOption: FC = (): ReactElement => {
                 <p className="mr-2">自定义请求代码</p>
                 <Switch checked={customRequest.opend} onChange={(value) => updateCustomRequestInfo({ opend: value })} />
                 <p className="ml-2 text-[#87888F] text-[12px] ">
-                    注：此选项可配置自己项目中的请求代码。默认不开启，并使用axios请求。
+                    注：此选项可配置自己项目中的请求代码。默认不开启，使用axios请求。
                 </p>
             </div>
 
@@ -39,7 +40,14 @@ export const CustomRequestOption: FC = (): ReactElement => {
                     block: customRequest.opend,
                 })}
             >
-                <span className="mr-2 w-20">请求代码</span>
+                <div className="mr-2">
+                    <span className="mr-2 w-20">请求代码</span>
+                    <Tooltip content="请用@url, @method, @data, @contentType替换代码里的实际参数">
+                        <IconQuestionCircle
+                            style={{ fontSize: 16, marginTop: 2, color: '#87888F', cursor: 'pointer' }}
+                        />
+                    </Tooltip>
+                </div>
                 <Input.TextArea
                     style={{ width: 460 }}
                     autoSize={{ minRows: 2, maxRows: 4 }}
