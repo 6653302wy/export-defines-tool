@@ -3,5 +3,4 @@ dist
 .idea
 .vscode
 *.DS_Store
-yarn.lock
-src-tauri/target/release
+
