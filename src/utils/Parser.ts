@@ -1,7 +1,7 @@
 /* eslint-disable max-lines-per-function */
 import { Message } from '@arco-design/web-react';
 import axios from 'axios';
-import { CustomRequest, OnlyDataExport } from '../store/globalStore';
+import { CustomRequest, OnlyDataExport, ServiceInfo } from '../store/globalStore';
 import { FilerUtils } from './fileUtls';
 
 interface PropertyInfo {
@@ -76,6 +76,8 @@ export class Parser {
     private onlyDataExport: OnlyDataExport = { opend: false, paramName: '' };
     // 自定义请求代码
     private customRequestCode: CustomRequest = { opend: false, importCode: '', requestCode: '' };
+    // 服务列表
+    private serverList: ServiceInfo[] = [];
 
     set savePath(path: string) {
         this.savepath = path;
@@ -97,6 +99,11 @@ export class Parser {
     set customCode(data: CustomRequest) {
         this.customRequestCode = data;
         console.log('set customCode: ', this.customRequestCode);
+    }
+
+    set serviceList(list: ServiceInfo[]) {
+        this.serverList = list;
+        console.log('set serviceList: ', this.serverList);
     }
 
     start(savePath: string, url?: string, jsonData?: JsonDataInfo) {
@@ -204,7 +211,7 @@ export class Parser {
 */
 export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDefine}): Promise<${respDefineName}> => {
     return ${this.customRequestCode.requestCode
-        .replace('@url', `'${this.getApiPre(apidata?.tags?.[0] || '').pre}${apiPath}'`)
+        .replace('@url', `'${this.getApiPre(apidata?.tags?.[0] || '')}${apiPath}'`)
         .replace('@method', `'${reqMethod}'`)
         .replace('@data', `data`)
         .replace('@contentType', `'${headerContentType || 'application/json;charset=utf-8'}'`)};
@@ -217,9 +224,9 @@ export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDe
  * ${apidata?.deprecated ? '@deprecated 接口已弃用' : ''}
  */
 export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDefine}): Promise<${respDefineName}> => {
-    return NetManager.inst.request('${
-        this.getApiPre(apidata?.tags?.[0] || '').pre
-    }${apiPath}', '${reqMethod}', data, '${headerContentType || 'application/json;charset=utf-8'}');
+    return NetManager.inst.request('${this.getApiPre(apidata?.tags?.[0] || '')}${apiPath}', '${reqMethod}', data, '${
+            headerContentType || 'application/json;charset=utf-8'
+        }');
 }\n`;
     }
 
@@ -380,26 +387,11 @@ ${subDefines.join('\n')}
 
     // todo 添加服务， 不同服务api前缀不同
     private getApiPre(tag: string) {
-        // if (tag.includes('C端')) return { pre: '/client-web-api', suf: 'C' };
-        // if (tag.includes('B端')) return { pre: '/business-web-api', suf: 'B' };
-        // if (tag.includes('Track')) return { pre: '/track-web-api', suf: 'T' };
-        // if (tag.includes('User服务')) return { pre: '/user-server-api', suf: 'U' };
-        // if (tag.includes('开放平台')) return { pre: '/open-platform-server-api', suf: 'K' };
-        // if (tag.includes('数字人服务')) {
-        //     return { pre: '/digital-human-server-api', suf: 'D' };
-        // }
-        if (tag.includes('竹园四期/首页-生产管理')) {
-            return { pre: '/home/zyscglService', suf: 'L' };
-        }
-        if (!this.apiJsonFile?.servers?.length) return { pre: '', suf: '' };
+        return this.serverList?.find?.((server) => server.name.includes(tag) || tag.includes(server.name))?.url || '';
 
-        // console.log(
-        //     'pre url: ',
-        //     this.apiJsonFile,
-        //     tag,
-        //     this.apiJsonFile.servers.find((server) => server.description.includes(tag))?.url,
-        // );
-        return { pre: this.apiJsonFile.servers.find((server) => server.description.includes(tag))?.url || '', suf: '' };
+        // if (!this.apiJsonFile?.servers?.length) return { pre: '', suf: '' };
+
+        // return { pre: this.apiJsonFile.servers.find((server) => server.description.includes(tag))?.url || '', suf: '' };
     }
 
     // 将 'user/login' 类型的接口名解析成驼峰式 UserLogin

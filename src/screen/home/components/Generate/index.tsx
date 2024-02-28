@@ -1,13 +1,14 @@
 /* eslint-disable prefer-regex-literals */
 /* eslint-disable max-lines-per-function */
-import { Button, Divider, Input, Message, Radio, Upload } from '@arco-design/web-react';
+import { Button, Divider, Input, Message, Radio, Tooltip, Upload } from '@arco-design/web-react';
 import { UploadItem } from '@arco-design/web-react/es/Upload';
-import { IconPaste, IconShareExternal } from '@arco-design/web-react/icon';
+import { IconList, IconPaste, IconShareExternal } from '@arco-design/web-react/icon';
 import { open } from '@tauri-apps/api/dialog';
 import { downloadDir } from '@tauri-apps/api/path';
 import { FunctionComponent, ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import { GlobalContext } from '../../../../store/globalStore';
 import { JsonDataInfo, Parser } from '../../../../utils/Parser';
+import { AddServerPop } from './components/AddServerPop';
 import { CustomRequestOption } from './components/CustomRequestOption';
 import { OnlyDataExportCom } from './components/OnlyDataExport';
 
@@ -36,8 +37,10 @@ const isAcceptFile = (file: File, accept: string) => {
 export const Generate: FunctionComponent = (): ReactElement => {
     const [jsonData, setJsonData] = useState<JsonDataInfo>({} as JsonDataInfo);
     const [exportType, setExportType] = useState<ExportType>(ExportType.URL);
+    const [showAddServerPop, setShowAddServerPop] = useState(false);
 
-    const { savePath, setSavePath, jsonUrl, setJsonUrl, onlyDataExport, customRequest } = useContext(GlobalContext);
+    const { savePath, setSavePath, jsonUrl, setJsonUrl, onlyDataExport, customRequest, serviceList } =
+        useContext(GlobalContext);
 
     const onSaveOutputDir = useCallback(async () => {
         const filePath = await open({
@@ -82,8 +85,15 @@ export const Generate: FunctionComponent = (): ReactElement => {
 
     useEffect(() => {
         parser.dataExport = onlyDataExport;
+    }, [onlyDataExport]);
+
+    useEffect(() => {
         parser.customCode = customRequest;
-    }, [customRequest, onlyDataExport]);
+    }, [customRequest]);
+
+    useEffect(() => {
+        parser.serviceList = serviceList;
+    }, [serviceList]);
 
     useEffect(() => {
         setDownloadDir();
@@ -173,6 +183,14 @@ export const Generate: FunctionComponent = (): ReactElement => {
                     生成
                 </Button>
             </div>
+
+            <Tooltip content="添加服务。注意：项目中有多个接口使用不同的 '前置URL' 时，需要添加多个服务。 服务名需要和接口的tag相同">
+                <Button
+                    icon={<IconList style={{ color: '#F1B920' }} />}
+                    onClick={() => setShowAddServerPop(true)}
+                ></Button>
+            </Tooltip>
+            <AddServerPop show={showAddServerPop} onClose={() => setShowAddServerPop(false)} />
         </div>
     );
 };

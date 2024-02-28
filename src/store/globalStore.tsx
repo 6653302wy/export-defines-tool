@@ -15,6 +15,12 @@ export interface OnlyDataExport {
     paramName: string;
 }
 
+export interface ServiceInfo {
+    name: string;
+    url: string;
+    desc?: string;
+}
+
 type GlobalStoreType = {
     savePath: string;
     setSavePath: (str: string) => void;
@@ -27,6 +33,9 @@ type GlobalStoreType = {
 
     customRequest: CustomRequest;
     updateCustomRequestInfo: (info: Partial<CustomRequest>) => void;
+
+    serviceList: ServiceInfo[];
+    updateServiceList: (info: ServiceInfo, index: number, isDelet?: boolean) => void;
 
     saveInLocalCache: (info: Partial<GlobalStoreType>) => void;
 };
@@ -47,6 +56,21 @@ export const GlobalStore: FC<{ children: ReactElement }> = ({ children }) => {
         importCode: cacheData?.customRequest.importCode || '',
         requestCode: cacheData?.customRequest.requestCode || '',
     });
+    const [serviceList, setServiceList] = useState<ServiceInfo[]>(cacheData?.serviceList || []);
+
+    const updateServiceList = useCallback((info: ServiceInfo, index: number, isDelet?: boolean) => {
+        setServiceList((pre) => {
+            const newlist = [...pre];
+            if (isDelet && index !== -1) {
+                newlist.splice(index, 1);
+                return newlist;
+            }
+
+            if (index >= 0) newlist[index] = info;
+            else newlist.push(info);
+            return newlist;
+        });
+    }, []);
 
     const updateOnlyDataExportInfo = useCallback((info: Partial<OnlyDataExport>) => {
         setonlyDataExport((pre) => {
@@ -81,6 +105,10 @@ export const GlobalStore: FC<{ children: ReactElement }> = ({ children }) => {
         saveInLocalCache({ customRequest });
     }, [saveInLocalCache, customRequest]);
 
+    useEffect(() => {
+        saveInLocalCache({ serviceList });
+    }, [saveInLocalCache, serviceList]);
+
     return (
         <GlobalContext.Provider
             value={{
@@ -93,6 +121,8 @@ export const GlobalStore: FC<{ children: ReactElement }> = ({ children }) => {
                 customRequest,
                 updateCustomRequestInfo,
                 saveInLocalCache,
+                serviceList,
+                updateServiceList,
             }}
         >
             {children}
