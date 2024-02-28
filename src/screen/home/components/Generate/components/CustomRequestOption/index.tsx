@@ -11,6 +11,9 @@ export const CustomRequestOption: FC = (): ReactElement => {
             <div className="flex items-center mb-2">
                 <p className="mr-2">自定义请求代码</p>
                 <Switch checked={customRequest.opend} onChange={(value) => updateCustomRequestInfo({ opend: value })} />
+                <p className="ml-2 text-[#87888F] text-[12px] ">
+                    注：此选项可配置自己项目中的请求代码。默认不开启，并使用axios请求。
+                </p>
             </div>
 
             <div

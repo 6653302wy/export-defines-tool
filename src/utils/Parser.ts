@@ -218,15 +218,36 @@ export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDe
 }\n`;
         }
 
+        //         return `
+        // /**
+        //  * ${apidata?.description || apidata?.summary || ''}
+        //  * ${apidata?.deprecated ? '@deprecated 接口已弃用' : ''}
+        //  */
+        // export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDefine}): Promise<${respDefineName}> => {
+        //     return NetManager.inst.request('${this.getApiPre(apidata?.tags?.[0] || '')}${apiPath}', '${reqMethod}', data, '${
+        //             headerContentType || 'application/json;charset=utf-8'
+        //         }');
+        // }\n`;
         return `
 /**
  * ${apidata?.description || apidata?.summary || ''}
  * ${apidata?.deprecated ? '@deprecated 接口已弃用' : ''}
  */
 export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDefine}): Promise<${respDefineName}> => {
-    return NetManager.inst.request('${this.getApiPre(apidata?.tags?.[0] || '')}${apiPath}', '${reqMethod}', data, '${
-            headerContentType || 'application/json;charset=utf-8'
-        }');
+    return new Promise((resolve, reject) => {
+        axios({
+          method: '${reqMethod}',
+          url: '${this.getApiPre(apidata?.tags?.[0] || '')}${apiPath}',
+          ${reqMethod === 'get' ? 'params' : 'data'}: data,
+          headers: { "Content-Type":'${headerContentType || 'application/json;charset=utf-8'}' },
+        })
+          .then((res) => resolve(${
+              this.onlyDataExport?.opend ? `res['${this.onlyDataExport?.paramName ?? 'data'}']` : 'res ?? ""'
+          }))
+          .catch((err) => {
+            reject(err);
+          });
+      });
 }\n`;
     }
 
@@ -374,7 +395,7 @@ ${subDefines.join('\n')}
     private async touchAPIFile() {
         const isDefault = !this.customRequestCode.opend;
         // 'import { NetManager } from "@vgene/utils"'
-        const final = `${isDefault ? 'import axios from "axios" ' : this.customRequestCode.importCode};
+        const final = `${isDefault ? `import axios from 'axios'` : this.customRequestCode.importCode};
     ${this.apiImports}
     ${this.apiDefines}`;
         await FilerUtils.saveTextFile(`${this.savePath}/Apis.ts`, final);
@@ -385,7 +406,7 @@ ${subDefines.join('\n')}
         await FilerUtils.saveTextFile(`${this.savePath}/Interface.ts`, this.interfaceDefines);
     }
 
-    // todo 添加服务， 不同服务api前缀不同
+    //  读取服务列表， 不同服务api前缀不同
     private getApiPre(tag: string) {
         return this.serverList?.find?.((server) => server.name.includes(tag) || tag.includes(server.name))?.url || '';
 
