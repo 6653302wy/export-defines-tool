@@ -1,11 +1,12 @@
-import { Input, Switch, Tooltip } from '@arco-design/web-react';
+/* eslint-disable max-lines-per-function */
+import { Input, Message, Select, Switch, Tooltip } from '@arco-design/web-react';
 import { IconQuestionCircle } from '@arco-design/web-react/icon';
 import classNames from 'classnames';
 import { FC, ReactElement, useContext } from 'react';
-import { GlobalContext } from '../../../../../../store/globalStore';
+import { CustomRequest, GlobalContext } from '../../../../../../store/globalStore';
 
 export const CustomRequestOption: FC<{ classname?: string }> = ({ classname }): ReactElement => {
-    const { customRequest, updateCustomRequestInfo } = useContext(GlobalContext);
+    const { customRequest, updateCustomRequestInfo, customRequestCacheList } = useContext(GlobalContext);
 
     return (
         <div className={classname}>
@@ -21,6 +22,22 @@ export const CustomRequestOption: FC<{ classname?: string }> = ({ classname }): 
                 <p className="ml-2 text-[#87888F] text-[12px] ">
                     注：此选项可配置自己项目中的请求代码。默认不开启，使用axios请求。
                 </p>
+                {/* <Select
+                    placeholder="Please select"
+                    style={{ width: 154 }}
+                    onChange={(value) =>
+                        Message.info({
+                            content: `You select ${value}.`,
+                            showIcon: true,
+                        })
+                    }
+                >
+                    {Array.from(customRequestCacheList.keys())?.map?.((item) => (
+                        <Select.Option key={item} value={item}>
+                            {item}
+                        </Select.Option>
+                    ))}
+                </Select> */}
             </div>
 
             <div

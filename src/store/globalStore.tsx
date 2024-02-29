@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 /**
  * 全局store
  */
@@ -34,6 +35,9 @@ type GlobalStoreType = {
     customRequest: CustomRequest;
     updateCustomRequestInfo: (info: Partial<CustomRequest>) => void;
 
+    customRequestCacheList: Map<string, CustomRequest>;
+    updateCustomRequestCacheList: (key: string, value: CustomRequest) => void;
+
     serviceList: ServiceInfo[];
     updateServiceList: (info: ServiceInfo, index: number, isDelet?: boolean) => void;
 
@@ -56,6 +60,9 @@ export const GlobalStore: FC<{ children: ReactElement }> = ({ children }) => {
         importCode: cacheData?.customRequest.importCode || '',
         requestCode: cacheData?.customRequest.requestCode || '',
     });
+    const [customRequestCacheList, setCustomRequestCacheList] = useState<Map<string, CustomRequest>>(
+        cacheData?.customRequestCacheList || new Map(),
+    );
     const [serviceList, setServiceList] = useState<ServiceInfo[]>(cacheData?.serviceList || []);
 
     const updateServiceList = useCallback((info: ServiceInfo, index: number, isDelet?: boolean) => {
@@ -84,6 +91,15 @@ export const GlobalStore: FC<{ children: ReactElement }> = ({ children }) => {
         });
     }, []);
 
+    const updateCustomRequestCacheList = useCallback((key: string, info: CustomRequest) => {
+        setCustomRequestCacheList((pre) => {
+            const newlist = new Map(pre);
+            newlist.set(key, info);
+
+            return newlist;
+        });
+    }, []);
+
     const saveInLocalCache = useCallback((info: Partial<GlobalStoreType>) => {
         const curCache = LocalStorage.inst.getObj('cache') as GlobalStoreType;
         LocalStorage.inst.setObj('cache', { ...curCache, ...info });
@@ -106,6 +122,10 @@ export const GlobalStore: FC<{ children: ReactElement }> = ({ children }) => {
     }, [saveInLocalCache, customRequest]);
 
     useEffect(() => {
+        saveInLocalCache({ customRequestCacheList });
+    }, [saveInLocalCache, customRequestCacheList]);
+
+    useEffect(() => {
         saveInLocalCache({ serviceList });
     }, [saveInLocalCache, serviceList]);
 
@@ -120,6 +140,8 @@ export const GlobalStore: FC<{ children: ReactElement }> = ({ children }) => {
                 updateOnlyDataExportInfo,
                 customRequest,
                 updateCustomRequestInfo,
+                customRequestCacheList,
+                updateCustomRequestCacheList,
                 saveInLocalCache,
                 serviceList,
                 updateServiceList,
