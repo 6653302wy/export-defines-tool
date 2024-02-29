@@ -9,7 +9,7 @@
   },
   "package": {
     "productName": "apifox-tool",
-    "version": "1.0.2"
+    "version": "1.0.3"
   },
   "tauri": {
     "allowlist": {
@@ -77,7 +77,7 @@
         "fullscreen": false,
         "width": 800,
         "height": 600,
-        "resizable": true,
+        "resizable": false,
         "title": "define-tool",
         "fileDropEnabled": false
       }

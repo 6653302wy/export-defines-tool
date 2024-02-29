@@ -5,6 +5,7 @@ import { UploadItem } from '@arco-design/web-react/es/Upload';
 import { IconList, IconPaste, IconShareExternal } from '@arco-design/web-react/icon';
 import { open } from '@tauri-apps/api/dialog';
 import { downloadDir } from '@tauri-apps/api/path';
+import classNames from 'classnames';
 import { FunctionComponent, ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import { GlobalContext } from '../../../../store/globalStore';
 import { JsonDataInfo, Parser } from '../../../../utils/Parser';
@@ -34,6 +35,7 @@ const isAcceptFile = (file: File, accept: string) => {
     return !!file;
 };
 
+const leftCls = 'ml-[60px]';
 export const Generate: FunctionComponent = (): ReactElement => {
     const [jsonData, setJsonData] = useState<JsonDataInfo>({} as JsonDataInfo);
     const [exportType, setExportType] = useState<ExportType>(ExportType.URL);
@@ -100,34 +102,34 @@ export const Generate: FunctionComponent = (): ReactElement => {
     }, [setDownloadDir]);
 
     return (
-        <div className="">
-            <div className="my-6">
+        <div className=" relative overflow-hidden">
+            <div className={classNames('my-6', leftCls)}>
                 <span className=" mr-2 w-20 inline-block ">生成目录: </span>
                 <Input style={{ width: 460 }} value={savePath} className=" mr-4 " />
                 <Button onClick={onSaveOutputDir}>浏览</Button>
             </div>
 
-            <OnlyDataExportCom />
+            <OnlyDataExportCom classname={leftCls} />
 
-            <CustomRequestOption />
+            <CustomRequestOption classname={leftCls} />
 
             <Divider />
 
             <Radio.Group
                 value={exportType}
                 options={[
-                    { label: '从URL里生成', value: ExportType.URL },
-                    { label: '从Json文件生成', value: ExportType.JSON },
+                    { label: '从URL生成', value: ExportType.URL },
+                    { label: '从JSON文件生成', value: ExportType.JSON },
                 ]}
                 onChange={(value) => setExportType(value as ExportType)}
-                className="mb-6"
+                className={classNames('mb-6', leftCls)}
             />
 
             {exportType === ExportType.URL ? (
-                <div>
-                    <span className=" mr-2 w-20 inline-block">JSON URL:</span>
+                <div className={classNames('my-2', leftCls)}>
+                    <span className=" mr-4 w-20 inline-block">JSON URL:</span>
                     <Input
-                        style={{ width: 420 }}
+                        style={{ width: 460 }}
                         className=" mr-2 "
                         defaultValue={jsonUrl}
                         placeholder="输入Swagger的JSON文件URL"
@@ -151,7 +153,7 @@ export const Generate: FunctionComponent = (): ReactElement => {
                         }}
                         onChange={onFileUploaded}
                     >
-                        <div className="w-[380px] h-[158px] flex flex-col justify-center items-center border border-dashed border-[var(--color-fill-4)] rounded text-center bg-[var(--color-fill-2)] ">
+                        <div className="w-[380px] h-[80px] flex flex-col justify-center items-center border border-dashed border-[var(--color-fill-4)] rounded text-center bg-[var(--color-fill-2)] ">
                             {!jsonData?.tags?.length ? (
                                 <>
                                     <IconShareExternal style={{ fontSize: 24, color: '#3680E8' }} />
@@ -169,7 +171,12 @@ export const Generate: FunctionComponent = (): ReactElement => {
                 </div>
             )}
 
-            <div className="w-full flex justify-center items-center mt-10">
+            <div
+                className={classNames('w-full flex justify-center items-center ', {
+                    'mt-5 ': exportType === ExportType.JSON,
+                    'mt-[60px] ': exportType === ExportType.URL,
+                })}
+            >
                 <Button
                     disabled={
                         (exportType === ExportType.URL && !jsonUrl) ||
@@ -186,10 +193,13 @@ export const Generate: FunctionComponent = (): ReactElement => {
 
             <Tooltip content="添加服务。注意：项目中有多个接口使用不同的 '前置URL' 时，需要添加多个服务。 服务名需要和接口的tag相同">
                 <Button
-                    icon={<IconList style={{ color: '#F1B920' }} />}
+                    className="ml-20"
+                    style={{ position: 'absolute', bottom: 0, right: 24 }}
+                    icon={<IconList style={{ color: 'rgb(var(--primary-6))' }} />}
                     onClick={() => setShowAddServerPop(true)}
-                ></Button>
+                />
             </Tooltip>
+
             <AddServerPop show={showAddServerPop} onClose={() => setShowAddServerPop(false)} />
         </div>
     );

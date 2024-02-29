@@ -4,11 +4,11 @@ import classNames from 'classnames';
 import { FC, ReactElement, useContext } from 'react';
 import { GlobalContext } from '../../../../../../store/globalStore';
 
-export const OnlyDataExportCom: FC = (): ReactElement => {
+export const OnlyDataExportCom: FC<{ classname?: string }> = ({ classname }): ReactElement => {
     const { onlyDataExport, updateOnlyDataExportInfo } = useContext(GlobalContext);
 
     return (
-        <div className={classNames('flex items-center my-4 ', { 'text-[#87888F]': !onlyDataExport.opend })}>
+        <div className={classNames(classname, 'flex items-center my-4 ', { 'text-[#87888F]': !onlyDataExport.opend })}>
             <span className="  inline-block">返回数据字段名（默认data）:</span>
             <Input
                 style={{ width: 120 }}
