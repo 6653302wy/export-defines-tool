@@ -1,5 +1,5 @@
-import { Button, Input, Modal } from '@arco-design/web-react';
-import { IconMinusCircle, IconPlus } from '@arco-design/web-react/icon';
+import { Button, Input, Modal, Tooltip } from '@arco-design/web-react';
+import { IconMinusCircle, IconPlus, IconQuestionCircle } from '@arco-design/web-react/icon';
 import { FC, ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import { GlobalContext, ServiceInfo } from '../../../../../../store/globalStore';
 
@@ -54,8 +54,13 @@ export const AddServerPop: FC<Props> = ({ show, onClose }): ReactElement => {
             escToExit={false}
             maskClosable={false}
         >
-            <div className="flex items-center mb-4">
-                <span className="mr-20">服务名</span>
+            <div className="flex items-center mb-3">
+                <div className="mr-20 ml-1">
+                    <span className="mr-2">服务名</span>
+                    <Tooltip content="服务名需与接口中的外层目录的名称一致">
+                        <IconQuestionCircle style={{ fontSize: 16, cursor: 'pointer' }} />
+                    </Tooltip>
+                </div>
                 <span>前置URL</span>
             </div>
             <div className="mb-4 max-h-[220px] overflow-y-auto">
