@@ -6,8 +6,8 @@
 ![预览](/src/assets/images/preview2.png)
 ![预览](/src/assets/images/preview3.png)
 
-![生成的代码示例](/src/assets/images/preview4.png)
-![生成的代码示例](/src/assets/images/preview5.png)
+![生成的代码示例](/src/assets/images/preview4.jpg)
+![生成的代码示例](/src/assets/images/preview5.jpg)
 
 ## 安装
 
