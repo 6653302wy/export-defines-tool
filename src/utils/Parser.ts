@@ -329,8 +329,6 @@ ${subDefines.join('\n')}
 
         let defines = '';
         params.forEach((key) => {
-            // console.log('param: ', key);
-
             const obj = propertyObj[key];
             const desc = `${obj?.description || ''} ${obj?.example ? 'expamle: ' : ''}${obj?.example || ''}`;
             const require = required?.includes?.(key) || false;
@@ -344,26 +342,33 @@ ${subDefines.join('\n')}
 
                 // 对象类型解析
                 if (obj.type === 'object') {
+                    defines += this.createParam(
+                        key,
+                        desc,
+                        subParamName,
+                        require,
+                    );
                     const def = createSubDefine(subParamName, obj as unknown as SchemaInfo);
-                    defines += def;
                     setSubDefs(def);
                 }
 
                 // 数组类型解析
                 if (obj.type === 'array') {
-                    const isBasicType = basicDataTypes.includes(`${obj?.items?.type}` || '');
+                    const itemType = `${obj?.items?.type}`;
+                    const isAlsoArray = itemType === 'array';
+                    const isBasicType = basicDataTypes.includes(itemType || '');
+
                     defines += this.createParam(
                         key,
                         desc,
-                        isBasicType ? `${obj?.items?.type}[]` : `${subParamName}[]`,
+                        isBasicType ? `${itemType}[]` : `${subParamName}${isAlsoArray ? '[]' : ''}[]`,
                         require,
                     );
                     if (!isBasicType) {
-                        setSubDefs(createSubDefine(subParamName, obj as unknown as SchemaInfo));
+                        setSubDefs(createSubDefine(subParamName, isAlsoArray ? obj?.items as unknown as SchemaInfo : obj as unknown as SchemaInfo));
                     }
                 }
             }
-            // if (api) this.responseSubDefineMap.set(api, subDefines);
         });
 
         return defines;
