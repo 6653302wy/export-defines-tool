@@ -217,17 +217,6 @@ export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDe
         .replace('@contentType', `'${headerContentType || 'application/json;charset=utf-8'}'`)};
 }\n`;
         }
-
-        //         return `
-        // /**
-        //  * ${apidata?.description || apidata?.summary || ''}
-        //  * ${apidata?.deprecated ? '@deprecated 接口已弃用' : ''}
-        //  */
-        // export const ${apiname} = (data${requestDefine === '{}' ? '?' : ''}: ${requestDefine}): Promise<${respDefineName}> => {
-        //     return NetManager.inst.request('${this.getApiPre(apidata?.tags?.[0] || '')}${apiPath}', '${reqMethod}', data, '${
-        //             headerContentType || 'application/json;charset=utf-8'
-        //         }');
-        // }\n`;
         return `
 /**
  * ${apidata?.description || apidata?.summary || ''}
@@ -320,6 +309,12 @@ ${subDefines.join('\n')}
 `;
         };
 
+        const setSubDefs = (subDef: string)=>{
+            const apiAllSubDefs = this.responseSubDefineMap.get(api) || [];
+            apiAllSubDefs.push(subDef);
+            this.responseSubDefineMap.set(api, apiAllSubDefs);
+        }
+
         // 复杂类型
         let params: string[] = [];
         let propertyObj = properties;
@@ -332,10 +327,10 @@ ${subDefines.join('\n')}
 
         if (!params.length) return '';
 
-        const subDefines = api ? this.responseSubDefineMap.get(api) || [] : [];
-
         let defines = '';
         params.forEach((key) => {
+            // console.log('param: ', key);
+
             const obj = propertyObj[key];
             const desc = `${obj?.description || ''} ${obj?.example ? 'expamle: ' : ''}${obj?.example || ''}`;
             const require = required?.includes?.(key) || false;
@@ -345,14 +340,13 @@ ${subDefines.join('\n')}
                 defines += this.createParam(key, desc, obj.type, require);
             } else {
                 // 复杂数据格式， object 和 array ， 需要继续往下一层解析
-                // const subParamName = `${api?.replace(/Request|Response|/g, '')}${this.firstUpperCase(key)}`;
                 const subParamName = paramKey ? `${paramKey}${this.firstUpperCase(key)}` : `${api?.replace(/Request|Response|/g, '')}${this.firstUpperCase(key)}`;
 
                 // 对象类型解析
                 if (obj.type === 'object') {
-                    // defines += this.createParam(key, desc, subParamName, require);
-                    defines += createSubDefine(subParamName, obj as unknown as SchemaInfo)
-                    subDefines.push(createSubDefine(subParamName, obj as unknown as SchemaInfo));
+                    const def = createSubDefine(subParamName, obj as unknown as SchemaInfo);
+                    defines += def;
+                    setSubDefs(def);
                 }
 
                 // 数组类型解析
@@ -364,14 +358,12 @@ ${subDefines.join('\n')}
                         isBasicType ? `${obj?.items?.type}[]` : `${subParamName}[]`,
                         require,
                     );
-
                     if (!isBasicType) {
-                        // defines += createSubDefine(subParamName, obj as unknown as SchemaInfo);
-                        subDefines.push(createSubDefine(subParamName, obj as unknown as SchemaInfo));
+                        setSubDefs(createSubDefine(subParamName, obj as unknown as SchemaInfo));
                     }
                 }
             }
-            if (api) this.responseSubDefineMap.set(api, subDefines);
+            // if (api) this.responseSubDefineMap.set(api, subDefines);
         });
 
         return defines;
