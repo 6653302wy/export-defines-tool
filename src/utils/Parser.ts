@@ -304,7 +304,7 @@ ${subDefines.join('\n')}
 `;
     }
 
-    private parseObjectStruct(param: SchemaInfo, api: string) {
+    private parseObjectStruct(param: SchemaInfo, api: string, paramKey?:string) {
         const { properties, items, required, type } = param;
 
         // 普通类型
@@ -315,7 +315,7 @@ ${subDefines.join('\n')}
 
         const createSubDefine = (name: string, subparams: SchemaInfo) => {
             return `export interface ${name} {
-                ${this.parseObjectStruct(subparams, api)}
+                ${this.parseObjectStruct(subparams, api, name)}
 }
 `;
         };
@@ -345,11 +345,13 @@ ${subDefines.join('\n')}
                 defines += this.createParam(key, desc, obj.type, require);
             } else {
                 // 复杂数据格式， object 和 array ， 需要继续往下一层解析
-                const subParamName = `${api?.replace(/Request|Response|/g, '')}${this.firstUpperCase(key)}`;
+                // const subParamName = `${api?.replace(/Request|Response|/g, '')}${this.firstUpperCase(key)}`;
+                const subParamName = paramKey ? `${paramKey}${this.firstUpperCase(key)}` : `${api?.replace(/Request|Response|/g, '')}${this.firstUpperCase(key)}`;
 
                 // 对象类型解析
                 if (obj.type === 'object') {
-                    defines += this.createParam(key, desc, subParamName, require);
+                    // defines += this.createParam(key, desc, subParamName, require);
+                    defines += createSubDefine(subParamName, obj as unknown as SchemaInfo)
                     subDefines.push(createSubDefine(subParamName, obj as unknown as SchemaInfo));
                 }
 
@@ -364,6 +366,7 @@ ${subDefines.join('\n')}
                     );
 
                     if (!isBasicType) {
+                        // defines += createSubDefine(subParamName, obj as unknown as SchemaInfo);
                         subDefines.push(createSubDefine(subParamName, obj as unknown as SchemaInfo));
                     }
                 }
