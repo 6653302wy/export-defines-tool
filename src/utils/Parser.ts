@@ -293,7 +293,7 @@ ${subDefines.join('\n')}
 `;
     }
 
-    private parseObjectStruct(param: SchemaInfo, api: string, paramKey?:string) {
+    private parseObjectStruct(param: SchemaInfo, api: string, paramKey?: string) {
         const { properties, items, required, type } = param;
 
         // 普通类型
@@ -309,11 +309,11 @@ ${subDefines.join('\n')}
 `;
         };
 
-        const setSubDefs = (subDef: string)=>{
+        const setSubDefs = (subDef: string) => {
             const apiAllSubDefs = this.responseSubDefineMap.get(api) || [];
             apiAllSubDefs.push(subDef);
             this.responseSubDefineMap.set(api, apiAllSubDefs);
-        }
+        };
 
         // 复杂类型
         let params: string[] = [];
@@ -338,16 +338,13 @@ ${subDefines.join('\n')}
                 defines += this.createParam(key, desc, obj.type, require);
             } else {
                 // 复杂数据格式， object 和 array ， 需要继续往下一层解析
-                const subParamName = paramKey ? `${paramKey}${this.firstUpperCase(key)}` : `${api?.replace(/Request|Response|/g, '')}${this.firstUpperCase(key)}`;
+                const subParamName = paramKey
+                    ? `${paramKey}${this.firstUpperCase(key)}`
+                    : `${api?.replace(/Request|Response|/g, '')}${this.firstUpperCase(key)}`;
 
                 // 对象类型解析
                 if (obj.type === 'object') {
-                    defines += this.createParam(
-                        key,
-                        desc,
-                        subParamName,
-                        require,
-                    );
+                    defines += this.createParam(key, desc, subParamName, require);
                     const def = createSubDefine(subParamName, obj as unknown as SchemaInfo);
                     setSubDefs(def);
                 }
@@ -365,7 +362,12 @@ ${subDefines.join('\n')}
                         require,
                     );
                     if (!isBasicType) {
-                        setSubDefs(createSubDefine(subParamName, isAlsoArray ? obj?.items as unknown as SchemaInfo : obj as unknown as SchemaInfo));
+                        setSubDefs(
+                            createSubDefine(
+                                subParamName,
+                                isAlsoArray ? (obj?.items as unknown as SchemaInfo) : (obj as unknown as SchemaInfo),
+                            ),
+                        );
                     }
                 }
             }
