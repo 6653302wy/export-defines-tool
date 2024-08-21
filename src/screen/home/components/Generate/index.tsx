@@ -5,13 +5,16 @@ import { UploadItem } from '@arco-design/web-react/es/Upload';
 import { IconList, IconPaste, IconShareExternal } from '@arco-design/web-react/icon';
 import { open } from '@tauri-apps/api/dialog';
 import { downloadDir } from '@tauri-apps/api/path';
+
 import classNames from 'classnames';
 import { FunctionComponent, ReactElement, useCallback, useContext, useEffect, useState } from 'react';
+
 import { GlobalContext } from '../../../../store/globalStore';
 import { JsonDataInfo, Parser } from '../../../../utils/Parser';
 import { AddServerPop } from './components/AddServerPop';
 import { CustomRequestOption } from './components/CustomRequestOption';
 import { OnlyDataExportCom } from './components/OnlyDataExport';
+import { OpenBrowser } from './components/OpenBrowser';
 
 const parser = new Parser();
 
@@ -199,6 +202,8 @@ export const Generate: FunctionComponent = (): ReactElement => {
                     onClick={() => setShowAddServerPop(true)}
                 />
             </Tooltip>
+
+            <OpenBrowser url="https://github.com/6653302wy/export-defines-tool/tree/release" />
 
             <AddServerPop show={showAddServerPop} onClose={() => setShowAddServerPop(false)} />
         </div>
