@@ -9,6 +9,8 @@ interface PropertyInfo {
     description?: string;
     example?: string;
     items?: { [key: string]: PropertyInfo };
+    // $ref "#/components/schemas/ResourceItem" 解析时取最后一个/后的内容
+    $ref?: string;
 }
 
 type ParamInfo = { [key: string]: PropertyInfo };
@@ -20,6 +22,9 @@ interface SchemaInfo {
     required?: string[];
     /** type 为 array 时 */
     items?: { [key: string]: PropertyInfo };
+    title?: string;
+    // $ref "#/components/schemas/ResourceItem" 解析时取最后一个/后的内容
+    $ref?: string;
 }
 
 interface ParameterInfo {
@@ -54,11 +59,13 @@ interface PathInfo {
 export interface JsonDataInfo {
     tags: { name: string }[];
     paths: { [key: string]: { [key: string]: PathInfo } };
+    components: { schemas: { [key: string]: SchemaInfo } };
     servers: ServerInfo[];
 }
 
 // 基础数据类型
-const basicDataTypes = ['string', 'number', 'integer', 'boolean', 'file'];
+const basicDataTypes = ['string', 'number', 'integer', 'boolean', 'file', 'float', 'double'];
+const refPath = '#/components/schemas/';
 
 export class Parser {
     private apiJsonFile: JsonDataInfo | undefined = undefined;
@@ -137,17 +144,13 @@ export class Parser {
                 const apidata = data[reqMethod];
                 const apiname = this.createAPIName(api);
                 const requestApi = `${apiname}Request`;
-                const responseApi = `${apiname}Response`;
+                const responseStruct = this.getValueByKey(apidata?.responses, 'schema') as SchemaInfo;
+                const responseApi = responseStruct?.$ref
+                    ? this.getRefStructName(responseStruct?.$ref)
+                    : `${apiname}Response`;
 
                 // 创建api
-                this.apiDefines += this.defineAPI(
-                    api,
-                    requestApi,
-                    responseApi,
-                    apidata,
-                    reqMethod,
-                    this.getValueByKey(apidata?.responses, 'schema') as SchemaInfo,
-                );
+                this.apiDefines += this.defineAPI(api, requestApi, responseApi, apidata, reqMethod, responseStruct);
 
                 // 创建请求数据结构体
                 this.interfaceDefines += this.parseRequestDefine(
@@ -157,12 +160,19 @@ export class Parser {
                 );
 
                 // 创建返回数据结构体
-                this.interfaceDefines += this.parseResoneDefine(
-                    responseApi,
-                    this.getValueByKey(apidata?.responses, 'schema') as SchemaInfo,
-                );
+                this.interfaceDefines += this.parseResoneDefine(responseApi, responseStruct);
+
                 // console.log('解析defines: ', this.interfaceDefines);
             }
+        });
+
+        // 解析ref结构体
+        const componentList = Object.keys(this.apiJsonFile.components.schemas);
+        componentList.forEach((key) => {
+            const struct = this?.apiJsonFile?.components?.schemas[key];
+            if (!struct) return;
+
+            this.interfaceDefines += this.parseRefStruct(struct as SchemaInfo, struct?.title || key);
         });
 
         // 写入接口文件
@@ -274,22 +284,40 @@ ${subDefines.join('\n')}
 `;
     }
 
+    private getRefStructName(ref: string) {
+        return ref?.replace(refPath, '');
+    }
+
     // 解析返回数据结构体
     private parseResoneDefine(api: string, response: SchemaInfo) {
         const parserObj = this.dataExport?.opend
             ? (response?.properties?.[this.dataExport?.paramName || ''] as unknown as SchemaInfo) || response
             : response;
-        const defines = this.parseObjectStruct(parserObj, api);
-        const subDefines = this.responseSubDefineMap.get(api) || [];
 
+        // 整个response是个引用时
+        const isRef = parserObj?.$ref;
+        const structName = isRef ? this.getRefStructName(parserObj?.$ref || '') : api;
+
+        this.apiImports += `import { ${structName} } from './Interface';`;
+
+        if (isRef) return '';
+
+        const defines = this.parseObjectStruct(parserObj, structName);
+        const subDefines = this.responseSubDefineMap.get(structName) || [];
         // console.log('parseResoneDefine: ', api, defines, subDefines);
 
-        this.apiImports += `import { ${api} } from './Interface';`;
-
-        return `export interface ${api} {
+        return `export interface ${structName} {
             ${defines}
 }\n
 ${subDefines.join('\n')}
+`;
+    }
+
+    private parseRefStruct(param: SchemaInfo, paramName: string) {
+        // const defines = this.parseObjectStruct(param, paramName);
+        return `export interface ${paramName} {
+            ${this.parseObjectStruct(param, paramName)}
+}
 `;
     }
 
@@ -302,7 +330,7 @@ ${subDefines.join('\n')}
             return this.createParam(paramname, '', type, param?.required?.includes(paramname) ?? false);
         }
 
-        const createSubDefine = (name: string, subparams: SchemaInfo) => {
+        const createSubDefine = (name: string, subparams: SchemaInfo): string => {
             return `export interface ${name} {
                 ${this.parseObjectStruct(subparams, api, name)}
 }
@@ -333,12 +361,17 @@ ${subDefines.join('\n')}
             const desc = `${obj?.description || ''} ${obj?.example ? 'expamle: ' : ''}${obj?.example || ''}`;
             const require = required?.includes?.(key) || false;
 
+            // 引用类型解析
+            if (`${obj?.$ref}`.includes(refPath)) {
+                defines += this.createParam(key, desc, this.getRefStructName(`${obj?.$ref}`), require);
+            }
+
             // 普通数据类型
-            if (basicDataTypes.includes(obj.type)) {
+            if (basicDataTypes.includes(obj?.type)) {
                 defines += this.createParam(key, desc, obj.type, require);
             } else {
                 // 复杂数据格式， object 和 array ， 需要继续往下一层解析
-                const subParamName = paramKey
+                let subParamName = paramKey
                     ? `${paramKey}${this.firstUpperCase(key)}`
                     : `${api?.replace(/Request|Response|/g, '')}${this.firstUpperCase(key)}`;
 
@@ -351,6 +384,11 @@ ${subDefines.join('\n')}
 
                 // 数组类型解析
                 if (obj.type === 'array') {
+                    // 引用类型解析
+                    if (`${obj?.items?.$ref}`.includes(refPath)) {
+                        subParamName = this.getRefStructName(`${obj?.items?.$ref}` || '');
+                    }
+
                     const itemType = `${obj?.items?.type}`;
                     const isAlsoArray = itemType === 'array';
                     const isBasicType = basicDataTypes.includes(itemType || '');
@@ -358,7 +396,9 @@ ${subDefines.join('\n')}
                     defines += this.createParam(
                         key,
                         desc,
-                        isBasicType ? `${itemType}[]` : `${subParamName}${isAlsoArray ? '[]' : ''}[]`,
+                        isBasicType
+                            ? `${this.getFinalType(itemType)}[]`
+                            : `${subParamName}${isAlsoArray ? '[]' : ''}[]`,
                         require,
                     );
                     if (!isBasicType) {
@@ -376,27 +416,42 @@ ${subDefines.join('\n')}
         return defines;
     }
 
-    private createParam(key: string, desc: string, dataType: string, required: boolean) {
-        let datatype = dataType;
+    private getFinalType = (dataType: string) => {
         switch (dataType) {
             case 'integer':
-                datatype = 'number';
-                break;
+            case 'int32':
+            case 'float':
+            case 'double':
+                return 'number';
             case 'file':
-                datatype = 'File';
-                break;
+                return 'File';
             default:
+                return dataType;
         }
+    };
+
+    private createParam(key: string, desc: string, dataType: string, required: boolean) {
+        const type = this.getFinalType(dataType);
+        // switch (dataType) {
+        //     case 'integer':
+        //     case 'int32':
+        //     case 'float':
+        //     case 'double':
+        //         datatype = 'number';
+        //         break;
+        //     case 'file':
+        //         datatype = 'File';
+        //         break;
+        //     default:
+        // }
         return `
     /** ${desc || ''} */
-    ${key}${required ? '' : '?'}: ${datatype};\n`;
+    ${key}${required ? '' : '?'}: ${type};\n`;
     }
 
     // 创建api文件
-
     private async touchAPIFile() {
         const isDefault = !this.customRequestCode.opend;
-        // 'import { NetManager } from "@vgene/utils"'
         const final = `${isDefault ? `import axios from 'axios'` : this.customRequestCode.importCode};
     ${this.apiImports}
     ${this.apiDefines}`;
