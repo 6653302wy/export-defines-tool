@@ -17,7 +17,7 @@ const config = {
             directory: resolve('dist'),
         },
         compress: true,
-        open: true,
+        open: false,
         hot: true,
         historyApiFallback: true,
         port: '3000',

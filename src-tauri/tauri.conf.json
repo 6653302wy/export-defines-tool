@@ -1,15 +1,15 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "build": {
-    "beforeBuildCommand": "yarn run build:prod",
-    "beforeDevCommand": "yarn run start",
+    "beforeBuildCommand": "pnpm run build:prod",
+    "beforeDevCommand": "pnpm run start",
     "devPath": "http://localhost:3000",
     "distDir": "../dist",
     "withGlobalTauri": true
   },
   "package": {
     "productName": "apifox-tool",
-    "version": "1.0.3"
+    "version": "1.1.0"
   },
   "tauri": {
     "allowlist": {
@@ -31,6 +31,10 @@
         "scope": [
           "$APPDATA/databases/*"
         ]
+      },
+      "shell": {
+        "all": false,
+        "open": true
       }
     },
     "bundle": {
