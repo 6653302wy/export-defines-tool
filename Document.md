@@ -45,3 +45,7 @@
 
 -   由于 Apifox 导出后的 swagger 文件中，每个接口会定义在一个 tags 中，因此添加服务名时，服务名一定要和接口的 tag 对应上。**最简单直观的就是使用接口的父目录名**，例如：
     ![alt text](/src/assets/images/doc/Group.png)
+    导出后如下图，不同的接口对应不同的服务 uri:
+    ![alt text](/src/assets/images/doc/1725107525687.jpg)
+
+以上就是大致的用法，欢迎提建议或者 isuess
