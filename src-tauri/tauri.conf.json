@@ -79,10 +79,10 @@
     "windows": [
       {
         "fullscreen": false,
-        "width": 800,
-        "height": 600,
+        "width": 870,
+        "height": 700,
         "resizable": false,
-        "title": "define-tool",
+        "title": "API导出工具",
         "fileDropEnabled": false
       }
     ]

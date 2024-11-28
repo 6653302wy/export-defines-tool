@@ -28,8 +28,8 @@ export const Home: FC = () => {
         switch (curMenu) {
             case '1':
                 return Generate;
-            case '2':
-                return Setting;
+            // case '2':
+            //     return Setting;
 
             default:
                 return Generate;

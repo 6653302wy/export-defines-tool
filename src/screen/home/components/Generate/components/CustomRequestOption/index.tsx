@@ -56,7 +56,7 @@ export const CustomRequestOption: FC<{ classname?: string }> = ({ classname }): 
                 </div>
                 <Input.TextArea
                     style={{ width: 460 }}
-                    autoSize={{ minRows: 2, maxRows: 4 }}
+                    autoSize={{ minRows: 2, maxRows: 6 }}
                     placeholder={`axios({
                         url: @url,
                         method: @method,
