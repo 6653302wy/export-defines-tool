@@ -1,6 +1,6 @@
 {
-  "name": "react-template",
-  "version": "1.2.0",
+  "name": "export-define-tool",
+  "version": "1.3.1",
   "description": "react app template with react-router, tailwindcss and more",
   "main": "index.js",
   "scripts": {

@@ -13,14 +13,6 @@ const saveTextFile = async (filePath: string, content: string) => {
     // }
     const isExist = await exists(filePath, { dir: BaseDirectory.AppData });
     if (isExist) await removeFile(filePath, { dir: BaseDirectory.AppConfig });
-    else {
-        Message.error({
-            content: '文件路径不存在',
-            showIcon: true,
-            position: 'bottom',
-        });
-        return;
-    }
 
     await writeTextFile(filePath, content, { dir: BaseDirectory.AppConfig });
 };
