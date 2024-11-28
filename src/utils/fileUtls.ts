@@ -3,14 +3,14 @@ import { exists, removeFile, writeTextFile, BaseDirectory } from '@tauri-apps/ap
 
 const saveTextFile = async (filePath: string, content: string) => {
     // console.log('saveTextFile: ', filePath);
-    if (!/^[a-zA-Z]:\\/.test(filePath)) {
-        Message.error({
-            content: '不支持的文件路径',
-            showIcon: true,
-            position: 'bottom',
-        });
-        return;
-    }
+    // if (!/^[a-zA-Z]\\/.test(filePath)) {
+    //     Message.error({
+    //         content: '不支持的文件路径',
+    //         showIcon: true,
+    //         position: 'bottom',
+    //     });
+    //     return;
+    // }
     const isExist = await exists(filePath, { dir: BaseDirectory.AppData });
     if (isExist) await removeFile(filePath, { dir: BaseDirectory.AppConfig });
     else {

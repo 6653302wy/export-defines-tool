@@ -114,15 +114,13 @@ export const Generate: FunctionComponent = (): ReactElement => {
 
                 <div className={classNames('my-6', leftCls)}>
                     <span className="  w-20 inline-block ">生成目录: </span>
-                    <Tooltip content={savePath}>
-                        <Input
-                            style={{ width: 460 }}
-                            defaultValue={savePath}
-                            value={savePath}
-                            onChange={(value) => setSavePath(value)}
-                            className=" mr-4 "
-                        />
-                    </Tooltip>
+                    <Input
+                        style={{ width: 570 }}
+                        defaultValue={savePath}
+                        value={savePath}
+                        // onChange={(value) => setSavePath(value)}
+                        className=" mr-4 "
+                    />
 
                     <Button className="mr-2" onClick={onSaveOutputDir}>
                         浏览
