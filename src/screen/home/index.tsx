@@ -1,8 +1,6 @@
-import { Menu } from '@arco-design/web-react';
-// import { invoke } from '@tauri-apps/api';
 // access the pre-bundled global API functions(用配置的withGlobalTauri来使用invoke)
 // const { invoke } = window.__TAURI__.tauri
-import { FC, Suspense, lazy, useCallback, useMemo, useState } from 'react';
+import { FC, Suspense, lazy, useMemo, useState } from 'react';
 import { LazyLoading } from '../../components/LazyLoading';
 
 const Generate = lazy(() =>
@@ -11,18 +9,18 @@ const Generate = lazy(() =>
     }),
 );
 
-const Setting = lazy(() =>
-    import('./components/Setting').then((module) => {
-        return { default: module.Setting };
-    }),
-);
+// const Setting = lazy(() =>
+//     import('./components/Setting').then((module) => {
+//         return { default: module.Setting };
+//     }),
+// );
 
 export const Home: FC = () => {
     const [curMenu, setCurMenu] = useState('1');
 
-    const onMenuClick = useCallback((key: string) => {
-        setCurMenu(key);
-    }, []);
+    // const onMenuClick = useCallback((key: string) => {
+    //     setCurMenu(key);
+    // }, []);
 
     const MenuPane = useMemo(() => {
         switch (curMenu) {
@@ -43,7 +41,13 @@ export const Home: FC = () => {
     // }, []);
 
     return (
-        <div className=" w-screen h-screen flex ">
+        <div
+            style={{
+                background:
+                    'radial-gradient(33% 55% at 93% 18%, rgba(77, 108, 246, 0.15) 0%, rgba(223, 228, 250, 0) 100%), radial-gradient(26% 42% at 4% 87%, rgba(116, 214, 253, 0.2) 4%, rgba(223, 228, 250, 0) 100%), linear-gradient(180deg, rgba(232, 235, 241, 0) 0%, #E8EBF1 20%, #E8EBF1 100%)',
+            }}
+            className=" w-screen h-screen flex "
+        >
             {/* <Menu
                 style={{ width: 120, backgroundColor: '#F6F7F9' }}
                 mode="vertical"

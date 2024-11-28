@@ -9,7 +9,7 @@
   },
   "package": {
     "productName": "apifox-tool",
-    "version": "1.2.0"
+    "version": "1.3.0"
   },
   "tauri": {
     "allowlist": {
@@ -79,7 +79,7 @@
     "windows": [
       {
         "fullscreen": false,
-        "width": 870,
+        "width": 850,
         "height": 700,
         "resizable": false,
         "title": "API导出工具",

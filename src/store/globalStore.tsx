@@ -3,7 +3,7 @@
  * 全局store
  */
 import { LocalStorage } from '@6653302wy/ts-utils';
-import { Message, Modal } from '@arco-design/web-react';
+import { Message } from '@arco-design/web-react';
 import { FC, ReactElement, createContext, useCallback, useEffect, useState } from 'react';
 
 export interface CustomRequest {
