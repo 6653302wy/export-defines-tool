@@ -1,5 +1,7 @@
 # API 导出工具
 
+**新写了一个 vscode 插件，使用起来更便捷，插件地址: [generate-api](https://marketplace.visualstudio.com/items?itemName=wanpp.generate-api-for-apifox)**
+
 ### Changelog
 
 #### [1.3.0] - 2024-11-28
